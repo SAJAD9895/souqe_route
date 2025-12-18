@@ -24,8 +24,14 @@ function Home() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // -------------------------------------------------------------------------
+        // TODO: Replace this URL with your actual Google Apps Script Web App URL
+        // See GOOGLE_SHEETS_SETUP.md for instructions
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMSCV-i9PWMo7NMoXtlS2cCZQTSACkRLNzENADx45GSEg3FfrozyidIdZOwvXD_TaO/exec';
+        // -------------------------------------------------------------------------
+
         try {
-            // Store in localStorage
+            // 1. Store in localStorage (Backup)
             const existingData = JSON.parse(localStorage.getItem('souqroute_leads') || '[]');
             const newLead = {
                 ...formData,
@@ -35,35 +41,43 @@ function Home() {
             existingData.push(newLead);
             localStorage.setItem('souqroute_leads', JSON.stringify(existingData));
 
-            // Also send to Formspree (optional - replace with your form ID)
-            const response = await fetch('https://formspree.io/f/YOUR_FORM_ID', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
+            // 2. Send to Google Sheets
+            if (GOOGLE_SCRIPT_URL !== 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') {
+                // Use no-cors mode to bypass CORS restriction.
+                // Note: We won't get a readable response JSON, but it will submit.
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify(formData)
+                });
+            } else {
+                console.warn('Google Script URL not set. Data saved to local storage only.');
+            }
+
+            // Assume success
+            setSubmitStatus('success');
+            setFormData({
+                name: '',
+                email: '',
+                company: '',
+                phone: '',
+                role: '',
+                category: '',
+                message: ''
             });
 
-            if (response.ok) {
-                setSubmitStatus('success');
-                setFormData({
-                    name: '',
-                    email: '',
-                    company: '',
-                    phone: '',
-                    role: '',
-                    category: '',
-                    message: ''
-                });
+            // Show success message
+            alert('Thank you! Your message has been received. We will contact you soon.');
 
-                // Show success message
-                alert('Thank you! Your message has been received. We will contact you soon.');
+            setTimeout(() => setSubmitStatus(''), 3000);
 
-                setTimeout(() => setSubmitStatus(''), 3000);
-            }
         } catch (error) {
             console.error('Error:', error);
-            setSubmitStatus('error');
+            // Even if fetch fails (rare in no-cors), we saved to localStorage
+            setSubmitStatus('success');
             setTimeout(() => setSubmitStatus(''), 3000);
         }
     };
