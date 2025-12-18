@@ -1,0 +1,38 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#00c853;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#00ff88;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#ffed4e;stop-opacity:1" />
+        </linearGradient>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <!-- Outer Circle -->
+    <circle cx="100" cy="100" r="95" fill="none" stroke="url(#greenGradient)" stroke-width="4" filter="url(#glow)"/>
+    
+    <!-- Inner Decorative Elements -->
+    <circle cx="100" cy="100" r="80" fill="none" stroke="url(#goldGradient)" stroke-width="1" opacity="0.5"/>
+    
+    <!-- Star Points -->
+    <path d="M100,20 L105,40 L100,35 L95,40 Z" fill="url(#greenGradient)" opacity="0.8"/>
+    <path d="M180,100 L160,105 L165,100 L160,95 Z" fill="url(#greenGradient)" opacity="0.8"/>
+    <path d="M100,180 L95,160 L100,165 L105,160 Z" fill="url(#greenGradient)" opacity="0.8"/>
+    <path d="M20,100 L40,95 L35,100 L40,105 Z" fill="url(#greenGradient)" opacity="0.8"/>
+    
+    <!-- Text -->
+    <text x="100" y="85" text-anchor="middle" fill="url(#greenGradient)" font-size="22" font-weight="bold" font-family="Outfit, sans-serif">VISION</text>
+    <text x="100" y="120" text-anchor="middle" fill="url(#goldGradient)" font-size="42" font-weight="bold" font-family="Outfit, sans-serif">2030</text>
+    
+    <!-- Bottom Text -->
+    <text x="100" y="145" text-anchor="middle" fill="#ffffff" font-size="10" font-family="Inter, sans-serif" opacity="0.7">SAUDI ARABIA</text>
+</svg>
