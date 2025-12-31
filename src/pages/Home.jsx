@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import './Home.css';
 
+import { supabase } from '../lib/supabaseClient';
+
 function Home() {
     const [formData, setFormData] = useState({
         name: '',
@@ -24,12 +26,6 @@ function Home() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // -------------------------------------------------------------------------
-        // TODO: Replace this URL with your actual Google Apps Script Web App URL
-        // See GOOGLE_SHEETS_SETUP.md for instructions
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMSCV-i9PWMo7NMoXtlS2cCZQTSACkRLNzENADx45GSEg3FfrozyidIdZOwvXD_TaO/exec';
-        // -------------------------------------------------------------------------
-
         try {
             // 1. Store in localStorage (Backup)
             const existingData = JSON.parse(localStorage.getItem('souqroute_leads') || '[]');
@@ -41,21 +37,22 @@ function Home() {
             existingData.push(newLead);
             localStorage.setItem('souqroute_leads', JSON.stringify(existingData));
 
-            // 2. Send to Google Sheets
-            if (GOOGLE_SCRIPT_URL !== 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') {
-                // Use no-cors mode to bypass CORS restriction.
-                // Note: We won't get a readable response JSON, but it will submit.
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8',
-                    },
-                    body: JSON.stringify(formData)
-                });
-            } else {
-                console.warn('Google Script URL not set. Data saved to local storage only.');
-            }
+            // 2. Send to Supabase
+            const { error } = await supabase
+                .from('leads')
+                .insert([
+                    {
+                        name: formData.name,
+                        email: formData.email,
+                        company: formData.company,
+                        phone: formData.phone,
+                        role: formData.role,
+                        category: formData.category,
+                        message: formData.message
+                    }
+                ]);
+
+            if (error) throw error;
 
             // Assume success
             setSubmitStatus('success');
@@ -76,8 +73,8 @@ function Home() {
 
         } catch (error) {
             console.error('Error:', error);
-            // Even if fetch fails (rare in no-cors), we saved to localStorage
-            setSubmitStatus('success');
+            setSubmitStatus('error');
+            alert('An error occurred. Please try again. (Data saved offline)');
             setTimeout(() => setSubmitStatus(''), 3000);
         }
     };

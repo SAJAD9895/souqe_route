@@ -7,6 +7,7 @@ import About from './pages/About';
 import Services from './pages/Services';
 import Solutions from './pages/Solutions';
 import Vision2030 from './pages/Vision2030';
+import Admin from './pages/Admin';
 import './App.css';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/services" element={<Services />} />
           <Route path="/solutions" element={<Solutions />} />
           <Route path="/vision-2030" element={<Vision2030 />} />
+          <Route path="/souquerootadmin" element={<Admin />} />
         </Routes>
         <Footer />
       </div>
