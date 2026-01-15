@@ -149,7 +149,8 @@ function Admin() {
             <div className="admin-login-page">
                 <div className="admin-login-container">
                     <div className="admin-login-header">
-                        <h1>SouqRoute Admin</h1>
+                        <img src="/images/logo-black.png" alt="Souq Route" className="admin-login-logo" />
+                        <h1>Admin Panel</h1>
                         <p>Sign in to access the admin panel</p>
                     </div>
                     <form onSubmit={handleLogin} className="admin-login-form">
@@ -194,7 +195,7 @@ function Admin() {
         <div className="admin-page">
             <div className="admin-sidebar">
                 <div className="admin-logo">
-                    <h2>SouqRoute</h2>
+                    <img src="/images/logo-white.png" alt="Souq Route" className="admin-sidebar-logo" />
                     <span>Admin Panel</span>
                 </div>
                 <nav className="admin-nav">
