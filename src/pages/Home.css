@@ -25,7 +25,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(0, 61, 122, 0.85), rgba(26, 35, 50, 0.75));
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
 }
 
 .hero-content {
@@ -38,20 +38,22 @@
 
 .hero-text {
     max-width: 700px;
-    color: var(--white);
+    color: var(--color-white);
 }
 
 .hero-text h1 {
     font-size: 3rem;
-    font-weight: 900;
+    font-weight: 600;
     line-height: 1.2;
     margin-bottom: var(--spacing-md);
+    color: var(--color-white);
 }
 
 .hero-text p {
     font-size: 1.3rem;
     margin-bottom: var(--spacing-lg);
-    font-weight: 300;
+    font-weight: 400;
+    color: var(--color-white);
 }
 
 .hero-buttons {
@@ -61,8 +63,8 @@
 
 /* ===== Stats Bar ===== */
 .stats-bar {
-    background: var(--primary-blue);
-    color: var(--white);
+    background: var(--color-black);
+    color: var(--color-white);
     padding: var(--spacing-lg) 0;
 }
 
@@ -75,18 +77,20 @@
 
 .stat-number {
     font-size: 3rem;
-    font-weight: 900;
+    font-weight: 600;
     margin-bottom: 0.5rem;
+    color: var(--color-white);
 }
 
 .stat-label {
     font-size: 1rem;
-    font-weight: 300;
+    font-weight: 400;
+    color: var(--color-white);
 }
 
 /* ===== About Section ===== */
 .about-section {
-    background: var(--gray-light);
+    background: var(--color-white);
 }
 
 .about-content {
@@ -98,13 +102,14 @@
 
 .about-text h3 {
     font-size: 1.8rem;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: var(--spacing-md);
+    font-weight: 600;
 }
 
 .about-text p {
     margin-bottom: var(--spacing-md);
-    color: var(--gray-medium);
+    color: var(--color-black);
     line-height: 1.8;
 }
 
@@ -115,12 +120,12 @@
 
 .features-list li {
     padding: 0.75rem 0;
-    color: var(--gray-dark);
+    color: var(--color-black);
     font-weight: 500;
 }
 
 .checkmark {
-    color: var(--success-green);
+    color: var(--color-red);
     font-weight: bold;
     margin-right: 0.5rem;
 }
@@ -141,15 +146,16 @@
 }
 
 .service-card {
-    background: var(--white);
+    background: var(--color-white);
     padding: var(--spacing-lg);
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-gray);
     transition: all 0.3s;
 }
 
 .service-card:hover {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     transform: translateY(-5px);
+    border-color: var(--color-red);
 }
 
 .service-icon {
@@ -163,12 +169,13 @@
 
 .service-card h3 {
     font-size: 1.5rem;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: var(--spacing-sm);
+    font-weight: 600;
 }
 
 .service-card p {
-    color: var(--gray-medium);
+    color: var(--color-black);
     margin-bottom: var(--spacing-md);
     line-height: 1.8;
 }
@@ -179,7 +186,7 @@
 
 .service-features li {
     padding: 0.5rem 0;
-    color: var(--gray-dark);
+    color: var(--color-black);
     border-bottom: 1px solid #f0f0f0;
 }
 
@@ -189,14 +196,14 @@
 
 .service-features li::before {
     content: '→';
-    color: var(--primary-blue);
+    color: var(--color-red);
     margin-right: 0.5rem;
     font-weight: bold;
 }
 
 /* ===== Categories Section ===== */
 .categories-section {
-    background: var(--gray-light);
+    background: #f9f9f9;
 }
 
 .categories-grid {
@@ -207,14 +214,16 @@
 }
 
 .category-item {
-    background: var(--white);
+    background: var(--color-white);
     overflow: hidden;
     transition: all 0.3s;
+    border: 1px solid var(--color-gray);
 }
 
 .category-item:hover {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     transform: translateY(-5px);
+    border-color: var(--color-red);
 }
 
 .category-image {
@@ -235,21 +244,22 @@
 
 .category-item h3 {
     font-size: 1.2rem;
-    color: var(--navy);
+    color: var(--color-black);
     padding: var(--spacing-md);
     padding-bottom: 0.5rem;
+    font-weight: 600;
 }
 
 .category-item p {
-    color: var(--gray-medium);
+    color: var(--color-black);
     padding: 0 var(--spacing-md) var(--spacing-md);
     font-size: 0.95rem;
 }
 
 /* ===== Vision Section ===== */
 .vision-section {
-    background: linear-gradient(135deg, var(--dark-blue), var(--navy));
-    color: var(--white);
+    background: var(--color-black);
+    color: var(--color-white);
     text-align: center;
 }
 
@@ -260,13 +270,16 @@
 .vision-content h2 {
     font-size: 2.5rem;
     margin-bottom: var(--spacing-md);
+    color: var(--color-white);
+    font-weight: 600;
 }
 
 .vision-content>p {
     font-size: 1.2rem;
     max-width: 800px;
     margin: 0 auto var(--spacing-lg);
-    font-weight: 300;
+    font-weight: 400;
+    color: var(--color-white);
 }
 
 .vision-points {
@@ -280,16 +293,25 @@
     background: rgba(255, 255, 255, 0.1);
     padding: var(--spacing-md);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s;
+}
+
+.vision-point:hover {
+    background: rgba(226, 19, 35, 0.1);
+    border-color: var(--color-red);
 }
 
 .vision-point h4 {
     font-size: 1.3rem;
     margin-bottom: 0.75rem;
+    color: var(--color-white);
+    font-weight: 600;
 }
 
 .vision-point p {
-    font-weight: 300;
+    font-weight: 400;
     font-size: 0.95rem;
+    color: var(--color-white);
 }
 
 /* ===== Contact Section ===== */
@@ -301,14 +323,16 @@
 }
 
 .contact-info-box {
-    background: var(--gray-light);
+    background: #f9f9f9;
     padding: var(--spacing-lg);
+    border: 1px solid var(--color-gray);
 }
 
 .contact-info-box h3 {
     font-size: 1.5rem;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: var(--spacing-md);
+    font-weight: 600;
 }
 
 .info-item {
@@ -317,18 +341,19 @@
 
 .info-item strong {
     display: block;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: 0.25rem;
+    font-weight: 600;
 }
 
 .info-item p {
-    color: var(--gray-medium);
+    color: var(--color-black);
 }
 
 .contact-form-box {
-    background: var(--white);
+    background: var(--color-white);
     padding: var(--spacing-lg);
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-gray);
 }
 
 .contact-form {
@@ -350,7 +375,7 @@
 
 .form-group label {
     font-weight: 600;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: 0.5rem;
 }
 
@@ -358,7 +383,7 @@
 .form-group select,
 .form-group textarea {
     padding: 0.75rem;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-gray);
     border-radius: 4px;
     font-family: var(--font-primary);
     font-size: 1rem;
@@ -369,15 +394,16 @@
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: var(--primary-blue);
+    border-color: var(--color-red);
 }
 
 .btn.success {
-    background: var(--success-green);
+    background: var(--color-red);
 }
 
 .btn.error {
-    background: #dc3545;
+    background: var(--color-red);
+    opacity: 0.8;
 }
 
 /* ===== Responsive Design ===== */
