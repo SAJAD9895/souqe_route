@@ -5,17 +5,12 @@ function WelcomeModal() {
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        // Check if user has already seen the modal in this session
-        const hasSeenModal = sessionStorage.getItem('souqroute_modal_seen');
+        // Show modal every time the home page is visited
+        const timer = setTimeout(() => {
+            setIsOpen(true);
+        }, 1000); // 1 second delay for smooth entry
 
-        if (!hasSeenModal) {
-            const timer = setTimeout(() => {
-                setIsOpen(true);
-                sessionStorage.setItem('souqroute_modal_seen', 'true');
-            }, 3000); // Show after 3 seconds
-
-            return () => clearTimeout(timer);
-        }
+        return () => clearTimeout(timer);
     }, []);
 
     const handleClose = () => {

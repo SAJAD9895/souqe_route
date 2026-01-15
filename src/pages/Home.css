@@ -380,18 +380,36 @@
 }
 
 .info-item {
-    margin-bottom: var(--spacing-md);
+    background: var(--color-white);
+    padding: var(--spacing-md);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s;
+    border: 1px solid var(--color-gray);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.info-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-red);
 }
 
 .info-item strong {
     display: block;
-    color: var(--color-black);
-    margin-bottom: 0.25rem;
+    color: var(--color-red);
+    margin-bottom: 0.5rem;
     font-weight: 600;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .info-item p {
     color: var(--color-black);
+    font-weight: 500;
 }
 
 .contact-form-box {
