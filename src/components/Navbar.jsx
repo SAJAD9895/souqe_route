@@ -36,8 +36,7 @@ function Navbar() {
                 <div className="container">
                     <div className="nav-container">
                         <Link to="/" className="logo" onClick={closeMenu}>
-                            <h1>SouqRoute</h1>
-                            <span className="tagline">Industrial Supply Solutions</span>
+                            <img src="/images/logo-black.png" alt="Souq Route" className="logo-image" />
                         </Link>
                         <button
                             className={`mobile-menu-btn ${isMenuOpen ? 'active' : ''}`}

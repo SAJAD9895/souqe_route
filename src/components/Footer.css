@@ -1,7 +1,7 @@
 /* ===== Footer ===== */
 .footer {
-    background: var(--navy);
-    color: var(--white);
+    background: var(--color-black);
+    color: var(--color-white);
     padding: var(--spacing-xl) 0 var(--spacing-md);
 }
 
@@ -12,10 +12,17 @@
     margin-bottom: var(--spacing-lg);
 }
 
+.footer-logo {
+    height: 50px;
+    width: auto;
+    margin-bottom: var(--spacing-md);
+}
+
 .footer-col h3,
 .footer-col h4 {
     margin-bottom: var(--spacing-md);
     font-size: 1.2rem;
+    font-weight: 600;
 }
 
 .footer-col p {
@@ -38,7 +45,7 @@
 }
 
 .footer-col ul li a:hover {
-    color: var(--light-blue);
+    color: var(--color-red);
 }
 
 .footer-bottom {
@@ -54,7 +61,7 @@
 }
 
 .footer-bottom a:hover {
-    color: var(--light-blue);
+    color: var(--color-red);
 }
 
 .footer-badge {

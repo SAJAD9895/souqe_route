@@ -1,8 +1,33 @@
+/* Import Parkinsans Font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Parkinsans:wght@300;400;500;600;700;800&display=swap');
+
 /* Global Reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* CSS Variables - Official Souq Route Brand Colors */
+:root {
+  /* Primary Colors */
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+
+  /* Secondary Colors */
+  --color-gray: #ADADAD;
+  --color-red: #E21323;
+
+  /* Typography */
+  --font-primary: 'Parkinsans', sans-serif;
+
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 32px;
+  --spacing-xl: 48px;
+  --spacing-2xl: 64px;
 }
 
 html {
@@ -16,9 +41,78 @@ body {
   overflow-x: hidden;
   width: 100%;
   min-height: 100vh;
+  font-family: var(--font-primary);
+  font-weight: 400;
+  color: var(--color-black);
+  background-color: var(--color-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   width: 100%;
   overflow-x: hidden;
+}
+
+/* Typography Defaults */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-primary);
+  font-weight: 600;
+  color: var(--color-black);
+  line-height: 1.2;
+}
+
+p {
+  font-family: var(--font-primary);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Button Base Styles */
+button,
+.btn {
+  font-family: var(--font-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Primary CTA Button */
+.btn-primary {
+  background-color: var(--color-red);
+  color: var(--color-white);
+  border: 2px solid var(--color-red);
+}
+
+.btn-primary:hover {
+  background-color: #c11020;
+  border-color: #c11020;
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-black);
+  border: 2px solid var(--color-black);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+/* Outline Button */
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-black);
+  border: 2px solid var(--color-gray);
+}
+
+.btn-outline:hover {
+  border-color: var(--color-black);
 }

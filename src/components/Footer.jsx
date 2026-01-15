@@ -7,11 +7,11 @@ function Footer() {
             <div className="container">
                 <div className="footer-grid">
                     <div className="footer-col">
-                        <h3>SouqRoute</h3>
+                        <img src="/images/logo-white.png" alt="Souq Route" className="footer-logo" />
                         <p>Saudi Arabia's Premier Industrial Supply Chain Platform</p>
                         <div className="footer-badge">
                             <img
-                                src="https://upload.wikimedia.org/wikipedia/en/thumb/e/e3/Saudi_Vision_2030_logo.svg/1200px-Saudi_Vision_2030_logo.svg.png"
+                                src="/images/vision2030.png"
                                 alt="Vision 2030"
                                 style={{ maxWidth: '100px', opacity: 0.8 }}
                             />

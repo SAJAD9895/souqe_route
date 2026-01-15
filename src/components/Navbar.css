@@ -1,7 +1,7 @@
 /* ===== Top Bar ===== */
 .top-bar {
-    background: var(--navy);
-    color: var(--white);
+    background: var(--color-black);
+    color: var(--color-white);
     padding: 0.75rem 0;
     font-size: 0.9rem;
 }
@@ -17,19 +17,19 @@
 }
 
 .top-links a {
-    color: var(--white);
+    color: var(--color-white);
     text-decoration: none;
     margin-left: var(--spacing-md);
     transition: color 0.3s;
 }
 
 .top-links a:hover {
-    color: var(--light-blue);
+    color: var(--color-red);
 }
 
 /* ===== Navigation ===== */
 .navbar {
-    background: var(--white);
+    background: var(--color-white);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
@@ -45,19 +45,14 @@
 
 .logo {
     text-decoration: none;
+    display: flex;
+    align-items: center;
 }
 
-.logo h1 {
-    font-size: 2rem;
-    font-weight: 900;
-    color: var(--primary-blue);
-    margin-bottom: 0.25rem;
-}
-
-.logo .tagline {
-    font-size: 0.85rem;
-    color: var(--gray-medium);
-    font-weight: 400;
+.logo-image {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
 }
 
 .nav-menu {
@@ -68,27 +63,28 @@
 }
 
 .nav-menu a {
-    color: var(--gray-dark);
+    color: var(--color-black);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     transition: color 0.3s;
     padding: 0.5rem 0;
 }
 
 .nav-menu a:hover,
 .nav-menu a.active {
-    color: var(--primary-blue);
+    color: var(--color-red);
 }
 
 .btn-contact {
-    background: var(--primary-blue);
-    color: var(--white) !important;
+    background: var(--color-red);
+    color: var(--color-white) !important;
     padding: 0.75rem 1.5rem !important;
     border-radius: 4px;
+    font-weight: 600;
 }
 
 .btn-contact:hover {
-    background: var(--dark-blue);
+    background: #c11020;
 }
 
 .mobile-menu-btn {
@@ -103,7 +99,7 @@
 .mobile-menu-btn span {
     width: 25px;
     height: 3px;
-    background: var(--primary-blue);
+    background: var(--color-black);
     border-radius: 2px;
     transition: all 0.3s;
 }
@@ -126,13 +122,17 @@
         display: flex;
     }
 
+    .logo-image {
+        height: 40px;
+    }
+
     .nav-menu {
         position: fixed;
         top: 120px;
         left: -100%;
         width: 100%;
         height: calc(100vh - 120px);
-        background: var(--white);
+        background: var(--color-white);
         flex-direction: column;
         padding: var(--spacing-lg);
         transition: left 0.3s;
