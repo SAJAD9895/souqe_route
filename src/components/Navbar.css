@@ -50,7 +50,7 @@
 }
 
 .logo-image {
-    height: 50px;
+    height: 120px;
     width: auto;
     object-fit: contain;
 }
@@ -123,7 +123,7 @@
     }
 
     .logo-image {
-        height: 40px;
+        height: 80px;
     }
 
     .nav-menu {
