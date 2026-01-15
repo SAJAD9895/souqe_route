@@ -61,6 +61,24 @@
     gap: var(--spacing-md);
 }
 
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(226, 19, 35, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(226, 19, 35, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(226, 19, 35, 0);
+    }
+}
+
+.btn-pulse {
+    animation: pulse-red 2s infinite;
+}
+
 /* ===== Stats Bar ===== */
 .stats-bar {
     background: var(--color-black);

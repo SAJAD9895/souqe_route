@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import './Home.css';
 import RegistrationForm from '../components/RegistrationForm';
+import WelcomeModal from '../components/WelcomeModal';
 import { supabase } from '../lib/supabaseClient';
 
 function Home() {
 
     return (
         <div className="home-page">
+            <WelcomeModal />
             {/* Hero Section */}
             <section className="hero">
                 <div className="hero-image">
@@ -22,7 +24,7 @@ function Home() {
                             <h1>Saudi Arabia's Premier Industrial Supply Chain Platform</h1>
                             <p>Connecting Verified Suppliers with Buyers for MEP, Construction & Electrical Products</p>
                             <div className="hero-buttons">
-                                <a href="#about" className="btn btn-primary">Register Now</a>
+                                <a href="#about" className="btn btn-primary btn-pulse">Register Now</a>
                                 <a href="#services" className="btn btn-secondary">Our Services</a>
                             </div>
                         </div>
