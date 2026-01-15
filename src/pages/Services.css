@@ -31,7 +31,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(rgba(0, 61, 122, 0.8), rgba(26, 35, 50, 0.9));
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
 }
 
 .services-page .hero-content {
@@ -42,15 +42,17 @@
 
 .services-page .hero-content h1 {
     font-size: 3.5rem;
-    font-weight: 900;
+    font-weight: 600;
     margin-bottom: var(--spacing-sm);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: var(--color-white);
 }
 
 .services-page .hero-content p {
     font-size: 1.5rem;
-    font-weight: 300;
+    font-weight: 400;
     opacity: 0.9;
+    color: var(--color-white);
 }
 
 /* Services Content */
@@ -78,7 +80,7 @@
 .detailed-service-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    border-color: var(--primary-blue);
+    border-color: var(--color-red);
 }
 
 .service-img-wrapper {
@@ -95,12 +97,13 @@
 
 .service-text-content h3 {
     font-size: 1.5rem;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: var(--spacing-sm);
+    font-weight: 600;
 }
 
 .service-text-content p {
-    color: var(--gray-medium);
+    color: var(--color-black);
     margin-bottom: var(--spacing-md);
 }
 
@@ -113,13 +116,13 @@
     position: relative;
     padding-left: 20px;
     margin-bottom: 8px;
-    color: var(--gray-dark);
+    color: var(--color-black);
     font-size: 0.95rem;
 }
 
 .service-text-content ul li::before {
     content: "•";
-    color: var(--primary-blue);
+    color: var(--color-red);
     font-weight: bold;
     position: absolute;
     left: 0;
@@ -136,12 +139,13 @@
 
 .cta-box h3 {
     font-size: 1.8rem;
-    color: var(--navy);
+    color: var(--color-black);
     margin-bottom: var(--spacing-xs);
+    font-weight: 600;
 }
 
 .cta-box p {
-    color: var(--gray-medium);
+    color: var(--color-black);
     margin-bottom: var(--spacing-md);
 }
 
