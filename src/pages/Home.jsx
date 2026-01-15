@@ -1,83 +1,9 @@
 import { useState } from 'react';
 import './Home.css';
-
+import RegistrationForm from '../components/RegistrationForm';
 import { supabase } from '../lib/supabaseClient';
 
 function Home() {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        company: '',
-        phone: '',
-        role: '',
-        category: '',
-        message: ''
-    });
-
-    const [submitStatus, setSubmitStatus] = useState('');
-
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        try {
-            // 1. Store in localStorage (Backup)
-            const existingData = JSON.parse(localStorage.getItem('souqroute_leads') || '[]');
-            const newLead = {
-                ...formData,
-                id: Date.now(),
-                timestamp: new Date().toISOString()
-            };
-            existingData.push(newLead);
-            localStorage.setItem('souqroute_leads', JSON.stringify(existingData));
-
-            // 2. Send to Supabase
-            const { error } = await supabase
-                .from('leads')
-                .insert([
-                    {
-                        name: formData.name,
-                        email: formData.email,
-                        company: formData.company,
-                        phone: formData.phone,
-                        role: formData.role,
-                        category: formData.category,
-                        message: formData.message
-                    }
-                ]);
-
-            if (error) throw error;
-
-            // Assume success
-            setSubmitStatus('success');
-            setFormData({
-                name: '',
-                email: '',
-                company: '',
-                phone: '',
-                role: '',
-                category: '',
-                message: ''
-            });
-
-            // Show success message
-            alert('Thank you! Your message has been received. We will contact you soon.');
-
-            setTimeout(() => setSubmitStatus(''), 3000);
-
-        } catch (error) {
-            console.error('Error:', error);
-            setSubmitStatus('error');
-            alert('An error occurred. Please try again. (Data saved offline)');
-            setTimeout(() => setSubmitStatus(''), 3000);
-        }
-    };
 
     return (
         <div className="home-page">
@@ -96,7 +22,7 @@ function Home() {
                             <h1>Saudi Arabia's Premier Industrial Supply Chain Platform</h1>
                             <p>Connecting Verified Suppliers with Buyers for MEP, Construction & Electrical Products</p>
                             <div className="hero-buttons">
-                                <a href="#contact" className="btn btn-primary">Request Quote</a>
+                                <a href="#about" className="btn btn-primary">Register Now</a>
                                 <a href="#services" className="btn btn-secondary">Our Services</a>
                             </div>
                         </div>
@@ -150,10 +76,7 @@ function Home() {
                             <a href="/about" className="btn btn-outline">Learn More About Us</a>
                         </div>
                         <div className="about-image">
-                            <img
-                                src="/images/about-building.png"
-                                alt="Industrial Facility"
-                            />
+                            <RegistrationForm />
                         </div>
                     </div>
                 </div>
@@ -301,128 +224,27 @@ function Home() {
                         <div className="divider"></div>
                         <p>Request a quote or connect with our team</p>
                     </div>
-                    <div className="contact-content">
-                        <div className="contact-info-box">
+                    <div className="contact-content centered">
+                        <div className="contact-info-box full-width">
                             <h3>Contact Information</h3>
-                            <div className="info-item">
-                                <strong>Email:</strong>
-                                <p>info@souqroute.com</p>
-                            </div>
-                            <div className="info-item">
-                                <strong>Phone:</strong>
-                                <p>+966 55 543 2866</p>
-                            </div>
-                            <div className="info-item">
-                                <strong>Location:</strong>
-                                <p>Saudi Arabia</p>
-                            </div>
-                            <div className="info-item">
-                                <strong>Working Hours:</strong>
-                                <p>Sunday - Thursday: 8:00 AM - 5:00 PM</p>
-                            </div>
-                        </div>
-                        <div className="contact-form-box">
-                            <form onSubmit={handleSubmit} className="contact-form">
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="name">Full Name *</label>
-                                        <input
-                                            type="text"
-                                            id="name"
-                                            name="name"
-                                            value={formData.name}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label htmlFor="email">Email *</label>
-                                        <input
-                                            type="email"
-                                            id="email"
-                                            name="email"
-                                            value={formData.email}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
+                            <div className="contact-grid-info">
+                                <div className="info-item">
+                                    <strong>Email:</strong>
+                                    <p>info@souqroute.com</p>
                                 </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="company">Company Name *</label>
-                                        <input
-                                            type="text"
-                                            id="company"
-                                            name="company"
-                                            value={formData.company}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label htmlFor="phone">Phone Number *</label>
-                                        <input
-                                            type="tel"
-                                            id="phone"
-                                            name="phone"
-                                            value={formData.phone}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
+                                <div className="info-item">
+                                    <strong>Phone:</strong>
+                                    <p>+966 55 543 2866</p>
                                 </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="role">I am a *</label>
-                                        <select
-                                            id="role"
-                                            name="role"
-                                            value={formData.role}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            <option value="">Select...</option>
-                                            <option value="buyer">Buyer/Purchaser</option>
-                                            <option value="supplier">Supplier/Vendor</option>
-                                            <option value="both">Both</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label htmlFor="category">Product Category</label>
-                                        <select
-                                            id="category"
-                                            name="category"
-                                            value={formData.category}
-                                            onChange={handleChange}
-                                        >
-                                            <option value="">Select category...</option>
-                                            <option value="mep">MEP Equipment</option>
-                                            <option value="construction">Construction Materials</option>
-                                            <option value="electrical">Electrical Supplies</option>
-                                            <option value="industrial">Industrial Equipment</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
+                                <div className="info-item">
+                                    <strong>Location:</strong>
+                                    <p>Saudi Arabia</p>
                                 </div>
-                                <div className="form-group">
-                                    <label htmlFor="message">Message</label>
-                                    <textarea
-                                        id="message"
-                                        name="message"
-                                        rows="4"
-                                        value={formData.message}
-                                        onChange={handleChange}
-                                    ></textarea>
+                                <div className="info-item">
+                                    <strong>Working Hours:</strong>
+                                    <p>Sunday - Thursday: 8:00 AM - 5:00 PM</p>
                                 </div>
-                                <button
-                                    type="submit"
-                                    className={`btn btn-primary btn-block ${submitStatus}`}
-                                >
-                                    {submitStatus === 'success' ? '✓ Message Sent!' :
-                                        submitStatus === 'error' ? 'Error - Try Again' :
-                                            'Send Message'}
-                                </button>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>

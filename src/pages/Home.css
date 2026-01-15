@@ -97,7 +97,8 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--spacing-xl);
-    align-items: center;
+    align-items: start;
+    /* Changed from center to start for better form alignment */
 }
 
 .about-text h3 {
@@ -130,7 +131,13 @@
     margin-right: 0.5rem;
 }
 
+.about-image {
+    /* Container for the form */
+    width: 100%;
+}
+
 .about-image img {
+    /* Keep for fallback or if we revert to image */
     width: 100%;
     height: 400px;
     object-fit: cover;
@@ -322,10 +329,29 @@
     margin-top: var(--spacing-lg);
 }
 
+.contact-content.centered {
+    display: flex;
+    justify-content: center;
+    grid-template-columns: none;
+}
+
 .contact-info-box {
     background: #f9f9f9;
     padding: var(--spacing-lg);
     border: 1px solid var(--color-gray);
+}
+
+.contact-info-box.full-width {
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
+}
+
+.contact-grid-info {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
 }
 
 .contact-info-box h3 {
@@ -371,6 +397,7 @@
 .form-group {
     display: flex;
     flex-direction: column;
+    text-align: left;
 }
 
 .form-group label {
@@ -426,6 +453,7 @@
 
     .about-content {
         grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
     }
 
     .services-grid {
@@ -444,7 +472,17 @@
         grid-template-columns: 1fr;
     }
 
+    .contact-grid-info {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-grid-info {
         grid-template-columns: 1fr;
     }
 }

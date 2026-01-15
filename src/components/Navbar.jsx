@@ -53,7 +53,7 @@ function Navbar() {
                             <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
                             <li><Link to="/solutions" onClick={closeMenu}>Solutions</Link></li>
                             <li><Link to="/vision-2030" onClick={closeMenu}>Vision 2030</Link></li>
-                            <li><a href="#contact" className="btn-contact" onClick={closeMenu}>Get Quote</a></li>
+                            <li><a href="#about" className="btn-contact" onClick={closeMenu}>Register Now</a></li>
                         </ul>
                     </div>
                 </div>
