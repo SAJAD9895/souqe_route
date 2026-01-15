@@ -134,13 +134,13 @@ function Admin() {
 
     const getStatusColor = (status) => {
         const colors = {
-            new: '#3b82f6',
-            contacted: '#f59e0b',
-            qualified: '#8b5cf6',
-            converted: '#10b981',
-            rejected: '#ef4444'
+            new: '#000000',      // Black
+            contacted: '#666666', // Gray
+            qualified: '#E21323', // Red
+            converted: '#E21323', // Red
+            rejected: '#ADADAD'   // Light Gray
         };
-        return colors[status] || '#6b7280';
+        return colors[status] || '#ADADAD';
     };
 
     // Login Screen
@@ -234,42 +234,42 @@ function Admin() {
                     <div className="admin-dashboard">
                         <div className="stats-grid">
                             <div className="stat-card">
-                                <div className="stat-icon" style={{ background: '#3b82f6' }}>📊</div>
+                                <div className="stat-icon" style={{ background: 'var(--color-black)' }}>📊</div>
                                 <div className="stat-info">
                                     <h3>Total Leads</h3>
                                     <p className="stat-number">{stats.total}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-icon" style={{ background: '#3b82f6' }}>🆕</div>
+                                <div className="stat-icon" style={{ background: 'var(--color-black)' }}>🆕</div>
                                 <div className="stat-info">
                                     <h3>New</h3>
                                     <p className="stat-number">{stats.new}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-icon" style={{ background: '#f59e0b' }}>📞</div>
+                                <div className="stat-icon" style={{ background: 'var(--color-gray)' }}>📞</div>
                                 <div className="stat-info">
                                     <h3>Contacted</h3>
                                     <p className="stat-number">{stats.contacted}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-icon" style={{ background: '#8b5cf6' }}>✅</div>
+                                <div className="stat-icon" style={{ background: 'var(--color-red)' }}>✅</div>
                                 <div className="stat-info">
                                     <h3>Qualified</h3>
                                     <p className="stat-number">{stats.qualified}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-icon" style={{ background: '#10b981' }}>🎉</div>
+                                <div className="stat-icon" style={{ background: 'var(--color-red)' }}>🎉</div>
                                 <div className="stat-info">
                                     <h3>Converted</h3>
                                     <p className="stat-number">{stats.converted}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-icon" style={{ background: '#ef4444' }}>❌</div>
+                                <div className="stat-icon" style={{ background: '#333333' }}>❌</div>
                                 <div className="stat-info">
                                     <h3>Rejected</h3>
                                     <p className="stat-number">{stats.rejected}</p>
