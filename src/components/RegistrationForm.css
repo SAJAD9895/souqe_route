@@ -69,9 +69,102 @@
     resize: vertical;
 }
 
+/* ... previous styles ... */
+
+.form-section-title {
+    font-size: 1rem;
+    color: var(--color-red);
+    margin: 10px 0 5px 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+/* Progress Steps */
+.step-indicator-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+    padding: 0 10px;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    color: var(--color-gray-dark);
+}
+
+.step-number {
+    width: 30px;
+    height: 30px;
+    background: #e0e0e0;
+    color: #666;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+    transition: all 0.3s;
+}
+
+.step-item.active .step-number {
+    background: var(--color-red);
+    color: var(--color-white);
+}
+
+.step-item.active span {
+    font-weight: 600;
+    color: var(--color-black);
+}
+
+.step-item span {
+    font-size: 0.8rem;
+}
+
+.step-line {
+    flex: 1;
+    height: 2px;
+    background: #e0e0e0;
+    margin: 0 10px;
+    margin-bottom: 15px;
+    /* Adjust to align with circles */
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Navigation */
+.form-navigation {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
 @media (max-width: 600px) {
-    .form-row-compact {
-        flex-direction: column;
-        gap: 15px;
+    .step-item span {
+        display: none;
+        /* Hide labels on very small screens if needed */
     }
 }

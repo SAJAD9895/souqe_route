@@ -20,7 +20,7 @@ function Navbar() {
                 <div className="container">
                     <div className="top-bar-content">
                         <div className="contact-info">
-                            <span>📞 +966 55 543 2866</span>
+                            {/* <span>📞 +966 55 543 2866</span> */}
                             <span>✉️ info@souqroute.com</span>
                         </div>
                         <div className="top-links">

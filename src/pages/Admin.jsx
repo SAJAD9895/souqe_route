@@ -301,12 +301,12 @@ function Admin() {
                                         <tr>
                                             <th>Date</th>
                                             <th>Name</th>
-                                            <th>Email</th>
                                             <th>Company</th>
+                                            <th>Business Activity</th>
                                             <th>Phone</th>
-                                            <th>Role</th>
-                                            <th>Category</th>
-                                            <th>Message</th>
+                                            <th>Email</th>
+                                            <th>City/Country</th>
+                                            <th>Details</th>
                                             <th>Status</th>
                                         </tr>
                                     </thead>
@@ -314,14 +314,19 @@ function Admin() {
                                         {leads.map((lead) => (
                                             <tr key={lead.id}>
                                                 <td>{formatDate(lead.created_at)}</td>
-                                                <td><strong>{lead.name}</strong></td>
-                                                <td>{lead.email}</td>
+                                                <td><strong>{lead.first_name || lead.name} {lead.last_name || ''}</strong></td>
                                                 <td>{lead.company || '-'}</td>
+                                                <td>{lead.business_activity || lead.role || '-'}</td>
                                                 <td>{lead.phone || '-'}</td>
-                                                <td>{lead.role || '-'}</td>
-                                                <td>{lead.category || '-'}</td>
-                                                <td className="message-cell">
-                                                    {lead.message || '-'}
+                                                <td>{lead.email}</td>
+                                                <td>{lead.city || '-'}, {lead.country || '-'}</td>
+                                                <td className="details-cell">
+                                                    <small>
+                                                        {lead.mobile_number && <div>Mobile: {lead.mobile_number}</div>}
+                                                        {lead.brands_represented && <div>Brands: {lead.brands_represented}</div>}
+                                                        {lead.website && <div>Web: {lead.website}</div>}
+                                                        {lead.message && <div>Note: {lead.message}</div>}
+                                                    </small>
                                                 </td>
                                                 <td>
                                                     <select

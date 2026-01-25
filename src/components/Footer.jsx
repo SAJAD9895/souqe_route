@@ -40,7 +40,7 @@ function Footer() {
                         <h4>Contact</h4>
                         <ul>
                             <li>Email: info@souqroute.com</li>
-                            <li>Phone: +966 55 543 2866</li>
+                            {/* <li>Phone: +966 55 543 2866</li> */}
                             <li>Saudi Arabia</li>
                         </ul>
                     </div>

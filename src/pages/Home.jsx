@@ -22,10 +22,12 @@ function Home() {
                     <div className="container">
                         <div className="hero-text">
                             <h1>Saudi Arabia's Premier Industrial Supply Chain Platform</h1>
-                            <p>Connecting Verified Suppliers with Buyers for MEP, Construction & Electrical Products</p>
+                            <p>Connecting Verified Suppliers with Buyers for Construction & Electrical
+                                Products- change this to Connecting Buyers & Suppliers Across All Industries
+                                in Saudi Arabia.</p>
                             <div className="hero-buttons">
                                 <a href="#about" className="btn btn-primary btn-pulse">Register Now</a>
-                                <a href="#services" className="btn btn-secondary">Our Services</a>
+                                {/* <a href="#services" className="btn btn-secondary">Our Services</a> */}
                             </div>
                         </div>
                     </div>
@@ -71,7 +73,7 @@ function Home() {
                             <p>Our platform specializes in MEP (Mechanical, Electrical & Plumbing), construction materials, industrial equipment, and electrical products, serving contractors, developers, and industrial projects across the Kingdom.</p>
                             <ul className="features-list">
                                 <li><span className="checkmark">✓</span> 100% Verified Supplier Network</li>
-                                <li><span className="checkmark">✓</span> Streamlined RFQ Management</li>
+                                {/* <li><span className="checkmark">✓</span> Streamlined RFQ Management</li> */}
                                 <li><span className="checkmark">✓</span> Smart Supplier Matching</li>
                                 <li><span className="checkmark">✓</span> Direct Communication Tools</li>
                             </ul>
@@ -85,7 +87,8 @@ function Home() {
             </section>
 
             {/* Services Section */}
-            <section className="services-section" id="services">
+            {/* Services Section */}
+            {/* <section className="services-section" id="services">
                 <div className="container">
                     <div className="section-header">
                         <h2>Our Services</h2>
@@ -131,7 +134,7 @@ function Home() {
                         </div>
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             {/* Product Categories */}
             <section className="categories-section">
@@ -234,18 +237,18 @@ function Home() {
                                     <strong>Email:</strong>
                                     <p>info@souqroute.com</p>
                                 </div>
-                                <div className="info-item">
+                                {/* <div className="info-item">
                                     <strong>Phone:</strong>
                                     <p>+966 55 543 2866</p>
-                                </div>
+                                </div> */}
                                 <div className="info-item">
                                     <strong>Location:</strong>
                                     <p>Saudi Arabia</p>
                                 </div>
-                                <div className="info-item">
+                                {/* <div className="info-item">
                                     <strong>Working Hours:</strong>
                                     <p>Sunday - Thursday: 8:00 AM - 5:00 PM</p>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                     </div>
