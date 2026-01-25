@@ -49,11 +49,12 @@ function Navbar() {
                         </button>
                         <ul className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
                             <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-                            <li><Link to="/about" onClick={closeMenu}>About Us</Link></li>
+                            <li><Link to="/about" onClick={closeMenu}>About</Link></li>
                             <li><Link to="/services" onClick={closeMenu}>Services</Link></li>
                             <li><Link to="/solutions" onClick={closeMenu}>Solutions</Link></li>
                             <li><Link to="/vision-2030" onClick={closeMenu}>Vision 2030</Link></li>
-                            <li><a href="#about" className="btn-contact" onClick={closeMenu}>Register Now</a></li>
+                            <li><Link to="/blog" onClick={closeMenu}>Blog</Link></li>
+                            <li><a href="#contact" onClick={closeMenu} className="btn-contact">Get Started</a></li>
                         </ul>
                     </div>
                 </div>
