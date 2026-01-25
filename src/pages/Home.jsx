@@ -25,9 +25,7 @@ function Home() {
                     <div className="container">
                         <div className="hero-text">
                             <h1>Saudi Arabia's Premier Industrial Supply Chain Platform</h1>
-                            <p>Connecting Verified Suppliers with Buyers for Construction & Electrical
-                                Products- change this to Connecting Buyers & Suppliers Across All Industries
-                                in Saudi Arabia.</p>
+                            <p>Connecting Verified Suppliers with Buyers for Construction & Electrical Products- change this to Connecting Buyers & Suppliers Across All Industries in Saudi Arabia.</p>
                             <div className="hero-buttons">
                                 <a href="#about" className="btn btn-primary btn-pulse">Register Now</a>
                                 {/* <a href="#services" className="btn btn-secondary">Our Services</a> */}
