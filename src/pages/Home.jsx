@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Home.css';
 import RegistrationForm from '../components/RegistrationForm';
 import WelcomeModal from '../components/WelcomeModal';
 import { supabase } from '../lib/supabaseClient';
 
 function Home() {
+    useEffect(() => {
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animated');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all elements with animate-on-scroll class
+        const animatedElements = document.querySelectorAll('.animate-on-scroll');
+        animatedElements.forEach(el => observer.observe(el));
+
+        return () => {
+            animatedElements.forEach(el => observer.unobserve(el));
+        };
+    }, []);
 
     return (
         <div className="home-page">
@@ -61,13 +84,13 @@ function Home() {
             {/* About Section */}
             <section className="about-section" id="about">
                 <div className="container">
-                    <div className="section-header">
+                    <div className="section-header animate-on-scroll fade-in-up">
                         <h2>About SouqRoute</h2>
                         <div className="divider"></div>
                         <p>The Kingdom's First Digital Industrial Ecosystem</p>
                     </div>
                     <div className="about-content">
-                        <div className="about-text">
+                        <div className="about-text animate-on-scroll fade-in-left">
                             <h3>Transforming Saudi Arabia's Industrial Supply Chain</h3>
                             <p>SouqRoute is a pioneering digital platform revolutionizing the industrial supply chain ecosystem in Saudi Arabia. We connect verified suppliers with buyers through an intelligent, transparent, and efficient marketplace that supports the Kingdom's Vision 2030 transformation goals.</p>
                             <p>Our platform specializes in MEP (Mechanical, Electrical & Plumbing), construction materials, industrial equipment, and electrical products, serving contractors, developers, and industrial projects across the Kingdom.</p>
@@ -79,7 +102,7 @@ function Home() {
                             </ul>
                             <a href="/about" className="btn btn-outline">Learn More About Us</a>
                         </div>
-                        <div className="about-image">
+                        <div className="about-image animate-on-scroll fade-in-right">
                             <RegistrationForm />
                         </div>
                     </div>
