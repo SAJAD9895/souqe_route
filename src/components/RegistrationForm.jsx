@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import './RegistrationForm.css';
+import toast from 'react-hot-toast';
 
 function RegistrationForm() {
     const [currentStep, setCurrentStep] = useState(1);
@@ -35,13 +36,45 @@ function RegistrationForm() {
 
     const validateStep = (step) => {
         if (step === 1) {
-            return formData.firstName && formData.lastName && formData.email && formData.phone;
+            if (!formData.firstName) {
+                toast.error('First name is required');
+                return false;
+            }
+            if (!formData.lastName) {
+                toast.error('Last name is required');
+                return false;
+            }
+            if (!formData.email) {
+                toast.error('Email is required');
+                return false;
+            }
+            if (!formData.phone) {
+                toast.error('Phone number is required');
+                return false;
+            }
+            return true;
         }
         if (step === 2) {
-            return formData.company && formData.businessActivity;
+            if (!formData.company) {
+                toast.error('Company name is required');
+                return false;
+            }
+            if (!formData.businessActivity) {
+                toast.error('Business activity is required');
+                return false;
+            }
+            return true;
         }
         if (step === 3) {
-            return formData.city && formData.country;
+            if (!formData.city) {
+                toast.error('City is required');
+                return false;
+            }
+            if (!formData.country) {
+                toast.error('Country is required');
+                return false;
+            }
+            return true;
         }
         return true;
     };
@@ -49,8 +82,7 @@ function RegistrationForm() {
     const nextStep = () => {
         if (validateStep(currentStep)) {
             setCurrentStep(currentStep + 1);
-        } else {
-            alert('Please fill in all required fields marked with *');
+            toast.success('Step completed!');
         }
     };
 
@@ -62,9 +94,11 @@ function RegistrationForm() {
         e.preventDefault();
 
         if (!validateStep(3)) {
-            alert('Please fill in all required fields marked with *');
             return;
         }
+
+        // Show loading toast
+        const loadingToast = toast.loading('Submitting your registration...');
 
         try {
             // 1. Store in localStorage (Backup)
@@ -105,7 +139,16 @@ function RegistrationForm() {
 
             if (error) throw error;
 
-            // Assume success
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+
+            // Show success toast
+            toast.success('🎉 Registration successful! We will contact you soon.', {
+                duration: 5000,
+                icon: '✅',
+            });
+
+            // Reset form
             setSubmitStatus('success');
             setTimeout(() => {
                 setSubmitStatus('');
@@ -129,14 +172,21 @@ function RegistrationForm() {
                     country: '',
                     message: ''
                 });
-                alert('Thank you! Your registration has been received. We will contact you soon.');
             }, 1000);
 
 
         } catch (error) {
             console.error('Error:', error);
+
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+
+            // Show error toast
+            toast.error('Failed to submit. Please try again. (Data saved offline)', {
+                duration: 4000,
+            });
+
             setSubmitStatus('error');
-            alert('An error occurred. Please try again. (Data saved offline)');
         }
     };
 

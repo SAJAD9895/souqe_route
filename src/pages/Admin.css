@@ -343,15 +343,22 @@
 
 .leads-table-container {
     overflow-x: auto;
+    max-width: 100%;
+    border-radius: 12px;
 }
 
 .leads-table {
     width: 100%;
+    min-width: 1800px;
+    /* Ensures horizontal scroll for many columns */
     border-collapse: collapse;
 }
 
 .leads-table thead {
     background: #f7fafc;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .leads-table th {
@@ -362,6 +369,7 @@
     font-size: 14px;
     border-bottom: 2px solid #e2e8f0;
     white-space: nowrap;
+    background: #f7fafc;
 }
 
 .leads-table td {
@@ -369,6 +377,7 @@
     border-bottom: 1px solid #e2e8f0;
     color: #4a5568;
     font-size: 14px;
+    max-width: 200px;
 }
 
 .leads-table tbody tr {
@@ -377,6 +386,18 @@
 
 .leads-table tbody tr:hover {
     background: #f7fafc;
+}
+
+/* Cell utilities */
+.nowrap {
+    white-space: nowrap;
+}
+
+.truncate {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .message-cell {
@@ -395,6 +416,7 @@
     cursor: pointer;
     background: white;
     transition: all 0.3s;
+    min-width: 120px;
 }
 
 .status-select:focus {

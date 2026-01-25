@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import toast from 'react-hot-toast';
 import './Admin.css';
 
 function Admin() {
@@ -42,8 +43,10 @@ function Admin() {
         if (username === 'Admin' && password === 'Admin!123') {
             setIsAuthenticated(true);
             localStorage.setItem('souqroute_admin_auth', 'true');
+            toast.success('Welcome back, Admin! 👋');
         } else {
             setLoginError('Invalid credentials. Please try again.');
+            toast.error('Invalid credentials');
         }
     };
 
@@ -53,6 +56,7 @@ function Admin() {
         setUsername('');
         setPassword('');
         setActiveTab('dashboard');
+        toast.success('Logged out successfully');
     };
 
     const fetchLeads = async () => {
@@ -77,9 +81,10 @@ function Admin() {
                 rejected: data?.filter(l => l.status === 'rejected').length || 0
             };
             setStats(newStats);
+            toast.success(`Loaded ${data?.length || 0} leads`);
         } catch (error) {
             console.error('Error fetching leads:', error);
-            alert('Error loading leads. Please try again.');
+            toast.error('Error loading leads. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -115,9 +120,11 @@ function Admin() {
             };
             setStats(newStats);
 
+            toast.success(`Status updated to ${newStatus}`);
+
         } catch (error) {
             console.error('Error updating lead status:', error);
-            alert('Error updating status. Please try again.');
+            toast.error('Error updating status. Please try again.');
         }
     };
 
@@ -299,35 +306,50 @@ function Admin() {
                                 <table className="leads-table">
                                     <thead>
                                         <tr>
+                                            <th>ID</th>
                                             <th>Date</th>
-                                            <th>Name</th>
+                                            <th>First Name</th>
+                                            <th>Last Name</th>
                                             <th>Company</th>
                                             <th>Business Activity</th>
+                                            <th>Brands</th>
                                             <th>Phone</th>
+                                            <th>Mobile</th>
                                             <th>Email</th>
-                                            <th>City/Country</th>
-                                            <th>Details</th>
+                                            <th>Website</th>
+                                            <th>Office No</th>
+                                            <th>Building</th>
+                                            <th>Street</th>
+                                            <th>Locality</th>
+                                            <th>P.O. Box</th>
+                                            <th>City</th>
+                                            <th>Country</th>
+                                            <th>Message</th>
                                             <th>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {leads.map((lead) => (
                                             <tr key={lead.id}>
-                                                <td>{formatDate(lead.created_at)}</td>
-                                                <td><strong>{lead.first_name || lead.name} {lead.last_name || ''}</strong></td>
+                                                <td><strong>#{lead.id}</strong></td>
+                                                <td className="nowrap">{formatDate(lead.created_at)}</td>
+                                                <td><strong>{lead.first_name || '-'}</strong></td>
+                                                <td><strong>{lead.last_name || '-'}</strong></td>
                                                 <td>{lead.company || '-'}</td>
-                                                <td>{lead.business_activity || lead.role || '-'}</td>
-                                                <td>{lead.phone || '-'}</td>
-                                                <td>{lead.email}</td>
-                                                <td>{lead.city || '-'}, {lead.country || '-'}</td>
-                                                <td className="details-cell">
-                                                    <small>
-                                                        {lead.mobile_number && <div>Mobile: {lead.mobile_number}</div>}
-                                                        {lead.brands_represented && <div>Brands: {lead.brands_represented}</div>}
-                                                        {lead.website && <div>Web: {lead.website}</div>}
-                                                        {lead.message && <div>Note: {lead.message}</div>}
-                                                    </small>
-                                                </td>
+                                                <td>{lead.business_activity || '-'}</td>
+                                                <td className="truncate">{lead.brands_represented || '-'}</td>
+                                                <td className="nowrap">{lead.phone || '-'}</td>
+                                                <td className="nowrap">{lead.mobile_number || '-'}</td>
+                                                <td>{lead.email || '-'}</td>
+                                                <td className="truncate">{lead.website || '-'}</td>
+                                                <td>{lead.office_no || '-'}</td>
+                                                <td>{lead.building_name || '-'}</td>
+                                                <td>{lead.street || '-'}</td>
+                                                <td>{lead.locality || '-'}</td>
+                                                <td>{lead.po_box || '-'}</td>
+                                                <td>{lead.city || '-'}</td>
+                                                <td>{lead.country || '-'}</td>
+                                                <td className="message-cell">{lead.message || '-'}</td>
                                                 <td>
                                                     <select
                                                         className="status-select"

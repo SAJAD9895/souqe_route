@@ -1,33 +1,13 @@
 import { useState, useEffect } from 'react';
 import './Home.css';
+import '../styles/animations.css';
 import RegistrationForm from '../components/RegistrationForm';
 import WelcomeModal from '../components/WelcomeModal';
 import { supabase } from '../lib/supabaseClient';
+import { useScrollAnimations } from '../hooks/useScrollAnimations';
 
 function Home() {
-    useEffect(() => {
-        // Intersection Observer for scroll animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('animated');
-                }
-            });
-        }, observerOptions);
-
-        // Observe all elements with animate-on-scroll class
-        const animatedElements = document.querySelectorAll('.animate-on-scroll');
-        animatedElements.forEach(el => observer.observe(el));
-
-        return () => {
-            animatedElements.forEach(el => observer.unobserve(el));
-        };
-    }, []);
+    useScrollAnimations();
 
     return (
         <div className="home-page">
@@ -162,13 +142,13 @@ function Home() {
             {/* Product Categories */}
             <section className="categories-section">
                 <div className="container">
-                    <div className="section-header">
+                    <div className="section-header animate-on-scroll fade-in-up">
                         <h2>Product Categories</h2>
                         <div className="divider"></div>
                         <p>Wide Range of Industrial & Construction Products</p>
                     </div>
                     <div className="categories-grid">
-                        <div className="category-item">
+                        <div className="category-item animate-on-scroll scale-in">
                             <div className="category-image">
                                 <img
                                     src="/images/equipment.png"
@@ -178,7 +158,7 @@ function Home() {
                             <h3>MEP Equipment</h3>
                             <p>Mechanical, Electrical & Plumbing systems and components</p>
                         </div>
-                        <div className="category-item">
+                        <div className="category-item animate-on-scroll scale-in delay-100">
                             <div className="category-image">
                                 <img
                                     src="/images/warehouse.png"
@@ -188,7 +168,7 @@ function Home() {
                             <h3>Construction Materials</h3>
                             <p>Building materials, steel, concrete, and finishing products</p>
                         </div>
-                        <div className="category-item">
+                        <div className="category-item animate-on-scroll scale-in delay-200">
                             <div className="category-image">
                                 <img
                                     src="/images/logistics.png"
@@ -198,7 +178,7 @@ function Home() {
                             <h3>Electrical Supplies</h3>
                             <p>Cables, panels, transformers, and electrical components</p>
                         </div>
-                        <div className="category-item">
+                        <div className="category-item animate-on-scroll scale-in delay-300">
                             <div className="category-image">
                                 <img
                                     src="/images/about-team.png"
@@ -216,30 +196,30 @@ function Home() {
             <section className="vision-section">
                 <div className="container">
                     <div className="vision-content">
-                        <div className="vision-badge">
+                        <div className="vision-badge animate-on-scroll scale-in">
                             <img
                                 src="/images/vision2030.png"
                                 alt="Vision 2030"
                                 style={{ maxWidth: '150px' }}
                             />
                         </div>
-                        <h2>Aligned with Saudi Vision 2030</h2>
-                        <p>Supporting the Kingdom's transformation through digital innovation, industrial development, and economic diversification</p>
+                        <h2 className="animate-on-scroll fade-in-up">Aligned with Saudi Vision 2030</h2>
+                        <p className="animate-on-scroll fade-in-up delay-100">Supporting the Kingdom's transformation through digital innovation, industrial development, and economic diversification</p>
                         <div className="vision-points">
-                            <div className="vision-point">
+                            <div className="vision-point animate-on-scroll fade-in-up delay-100">
                                 <h4>Mega-Projects Support</h4>
                                 <p>Enabling NEOM, Qiddiya, and other transformative developments</p>
                             </div>
-                            <div className="vision-point">
+                            <div className="vision-point animate-on-scroll fade-in-up delay-200">
                                 <h4>SME Empowerment</h4>
                                 <p>Providing equal marketplace access for small and medium enterprises</p>
                             </div>
-                            <div className="vision-point">
+                            <div className="vision-point animate-on-scroll fade-in-up delay-300">
                                 <h4>Digital Transformation</h4>
                                 <p>Modernizing traditional supply chains with innovative technology</p>
                             </div>
                         </div>
-                        <a href="/vision-2030" className="btn btn-primary">Learn More</a>
+                        <a href="/vision-2030" className="btn btn-primary animate-on-scroll fade-in-up delay-400">Learn More</a>
                     </div>
                 </div>
             </section>
@@ -247,13 +227,13 @@ function Home() {
             {/* Contact Section */}
             <section className="contact-section" id="contact">
                 <div className="container">
-                    <div className="section-header">
+                    <div className="section-header animate-on-scroll fade-in-up">
                         <h2>Get in Touch</h2>
                         <div className="divider"></div>
                         <p>Request a quote or connect with our team</p>
                     </div>
                     <div className="contact-content centered">
-                        <div className="contact-info-box full-width">
+                        <div className="contact-info-box full-width animate-on-scroll scale-in">
                             <h3>Contact Information</h3>
                             <div className="contact-grid-info">
                                 <div className="info-item">

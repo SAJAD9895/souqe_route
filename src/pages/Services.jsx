@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
 import './Services.css';
+import '../styles/animations.css';
+import { useScrollAnimations } from '../hooks/useScrollAnimations';
 
 function Services() {
+    useScrollAnimations();
+
     return (
         <div className="services-page">
             {/* Page Hero */}
@@ -24,14 +28,14 @@ function Services() {
             {/* Main Content */}
             <section className="services-content-section">
                 <div className="container">
-                    <div className="section-header">
+                    <div className="section-header animate-on-scroll fade-in-up">
                         <h2>What We Do</h2>
                         <div className="divider"></div>
                         <p>Empowering the Industrial Ecosystem</p>
                     </div>
 
                     <div className="detailed-services-grid">
-                        <div className="detailed-service-card">
+                        <div className="detailed-service-card animate-on-scroll fade-in-left">
                             <div className="service-img-wrapper">
                                 <img src="/images/icon-verification.png" alt="Supplier Verification" />
                             </div>
@@ -47,7 +51,7 @@ function Services() {
                             </div>
                         </div>
 
-                        <div className="detailed-service-card">
+                        <div className="detailed-service-card animate-on-scroll fade-in-right delay-100">
                             <div className="service-img-wrapper">
                                 <img src="/images/icon-connectivity.png" alt="Smart Connectivity" />
                             </div>
@@ -63,7 +67,7 @@ function Services() {
                             </div>
                         </div>
 
-                        <div className="detailed-service-card">
+                        <div className="detailed-service-card animate-on-scroll fade-in-left delay-200">
                             <div className="service-img-wrapper">
                                 <img src="/images/icon-insights.png" alt="Market Intelligence" />
                             </div>
@@ -80,7 +84,7 @@ function Services() {
                         </div>
                     </div>
 
-                    <div className="cta-box">
+                    <div className="cta-box animate-on-scroll scale-in delay-300">
                         <h3>Ready to optimize your supply chain?</h3>
                         <p>Join SouqRoute today and experience the future of industrial procurement.</p>
                         <div className="cta-buttons">
