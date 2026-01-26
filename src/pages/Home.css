@@ -114,21 +114,24 @@
     overflow: hidden;
 }
 
-.hero-image {
+.hero-background {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    background-image: url('/images/hero-bg.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: scroll;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
 }
 
-.hero-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.hero-overlay {
+.hero-background::after {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
@@ -145,23 +148,24 @@
     align-items: center;
     justify-content: center;
     z-index: 1;
-    text-align: center;
 }
 
 .hero-content .container {
     width: 100%;
     display: flex;
     justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
 }
 
 .hero-text {
     max-width: 800px;
+    width: fit-content;
     margin: 0 auto;
     color: var(--color-white);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
 }
 
 .hero-text h1 {
@@ -169,24 +173,44 @@
     font-weight: 700;
     line-height: 1.2;
     margin-bottom: var(--spacing-md);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     color: var(--color-white);
-    animation: fadeInUp 1s ease-out;
+    text-align: left !important;
+    text-indent: 0 !important;
+    width: 100%;
+    letter-spacing: normal;
+    animation: none;
+    /* Removed animation to ensure static alignment */
 }
 
 .hero-text p {
     font-size: 1.5rem;
     margin-bottom: var(--spacing-lg);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     font-weight: 400;
     color: var(--color-white);
-    animation: fadeInUp 1s ease-out 0.2s both;
-    max-width: 700px;
+    text-align: left !important;
+    text-indent: 0 !important;
+    width: 100%;
+    letter-spacing: normal;
+    transform: none !important;
+    animation: none;
+    /* Removed animation to ensure static alignment */
 }
 
 .hero-buttons {
     display: flex;
     gap: var(--spacing-md);
-    justify-content: center;
-    animation: fadeInUp 1s ease-out 0.4s both;
+    justify-content: flex-start !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    animation: none;
 }
 
 @keyframes pulse-red {
@@ -402,11 +426,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s;
-}
-
-.category-item:hover .category-image img {
-    transform: scale(1.1);
 }
 
 .category-item h3 {

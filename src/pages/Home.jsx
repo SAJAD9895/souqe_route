@@ -14,21 +14,14 @@ function Home() {
             <WelcomeModal />
             {/* Hero Section */}
             <section className="hero">
-                <div className="hero-image">
-                    <img
-                        src="/images/hero-bg.png"
-                        alt="Industrial Supply Chain"
-                    />
-                    <div className="hero-overlay"></div>
-                </div>
+                <div className="hero-background"></div>
                 <div className="hero-content">
                     <div className="container">
                         <div className="hero-text">
                             <h1>Saudi Arabia's Premier Industrial Supply Chain Platform</h1>
-                            <p>Connecting Verified Suppliers with Buyers for Construction & Electrical Products- change this to Connecting Buyers & Suppliers Across All Industries in Saudi Arabia.</p>
+                            <p>Connecting Buyers & Suppliers Across All Industries in Saudi Arabia.</p>
                             <div className="hero-buttons">
                                 <a href="#about" className="btn btn-primary btn-pulse">Register Now</a>
-                                {/* <a href="#services" className="btn btn-secondary">Our Services</a> */}
                             </div>
                         </div>
                     </div>
