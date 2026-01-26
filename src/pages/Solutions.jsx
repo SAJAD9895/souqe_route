@@ -19,8 +19,10 @@ function Solutions() {
                 </div>
                 <div className="hero-content">
                     <div className="container">
-                        <h1>Our Solutions</h1>
-                        <p>Strategic Role in Saudi Arabia's Industrial Transformation</p>
+                        <div className="hero-text">
+                            <h1>Our Solutions</h1>
+                            <p>Strategic Role in Saudi Arabia's Industrial Transformation</p>
+                        </div>
                     </div>
                 </div>
             </section>

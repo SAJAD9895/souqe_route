@@ -18,8 +18,10 @@ function About() {
                 </div>
                 <div className="hero-content">
                     <div className="container">
-                        <h1>About SouqRoute</h1>
-                        <p>The Kingdom's First Digital Industrial Ecosystem</p>
+                        <div className="hero-text">
+                            <h1>About SouqRoute</h1>
+                            <p>The Kingdom's First Digital Industrial Ecosystem</p>
+                        </div>
                     </div>
                 </div>
             </section>

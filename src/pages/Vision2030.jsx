@@ -19,13 +19,15 @@ function Vision2030() {
                 </div>
                 <div className="hero-content">
                     <div className="container">
-                        <img
-                            src="/images/vision2030.png"
-                            alt="Vision 2030 Logo"
-                            className="vision-logo-hero"
-                        />
-                        <h1>Driving National Transformation</h1>
-                        <p>Building the Future of Supply Chain in Saudi Arabia</p>
+                        <div className="hero-text">
+                            <img
+                                src="/images/vision2030.png"
+                                alt="Vision 2030 Logo"
+                                className="vision-logo-hero"
+                            />
+                            <h1>Driving National Transformation</h1>
+                            <p>Building the Future of Supply Chain in Saudi Arabia</p>
+                        </div>
                     </div>
                 </div>
             </section>

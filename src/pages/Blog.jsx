@@ -25,8 +25,10 @@ function Blog() {
                 </div>
                 <div className="hero-content">
                     <div className="container">
-                        <h1>Industry Insights & News</h1>
-                        <p>Expert perspectives on Saudi Arabia's industrial transformation</p>
+                        <div className="hero-text">
+                            <h1>Industry Insights & News</h1>
+                            <p>Expert perspectives on Saudi Arabia's industrial transformation</p>
+                        </div>
                     </div>
                 </div>
             </section>

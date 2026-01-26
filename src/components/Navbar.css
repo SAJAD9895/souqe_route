@@ -12,8 +12,16 @@
     align-items: center;
 }
 
+.contact-info {
+    text-align: left;
+}
+
 .contact-info span {
     margin-right: var(--spacing-md);
+}
+
+.top-links {
+    text-align: right;
 }
 
 .top-links a {
@@ -137,6 +145,19 @@
         padding: var(--spacing-lg);
         transition: left 0.3s;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        align-items: center;
+        text-align: center;
+    }
+
+    .nav-menu li {
+        width: 100%;
+        text-align: center;
+    }
+
+    .nav-menu a {
+        display: block;
+        width: 100%;
+        text-align: center;
     }
 
     .nav-menu.active {
@@ -146,15 +167,30 @@
     .top-bar-content {
         flex-direction: column;
         gap: 0.5rem;
+        align-items: center;
     }
 
     .contact-info {
         display: flex;
         flex-direction: column;
         text-align: center;
+        align-items: center;
     }
 
     .contact-info span {
         margin: 0.25rem 0;
+        text-align: center;
+    }
+
+    .top-links {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .top-links a {
+        margin-left: 0;
     }
 }

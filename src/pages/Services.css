@@ -3,11 +3,6 @@
     position: relative;
     height: 60vh;
     min-height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white);
-    text-align: center;
     overflow: hidden;
 }
 
@@ -36,23 +31,61 @@
 
 .services-page .hero-content {
     position: relative;
-    z-index: 2;
-    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
 }
 
-.services-page .hero-content h1 {
+.services-page .hero-content .container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.services-page .hero-text {
+    max-width: 800px;
+    width: fit-content;
+    margin: 0 auto;
+    color: var(--color-white);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.services-page .hero-text h1 {
     font-size: 3.5rem;
     font-weight: 600;
-    margin-bottom: var(--spacing-sm);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1.2;
+    margin-bottom: var(--spacing-md);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     color: var(--color-white);
+    text-align: left !important;
+    text-indent: 0 !important;
+    width: 100%;
+    letter-spacing: normal;
 }
 
-.services-page .hero-content p {
+.services-page .hero-text p {
     font-size: 1.5rem;
+    margin-bottom: var(--spacing-lg);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     font-weight: 400;
-    opacity: 0.9;
     color: var(--color-white);
+    text-align: left !important;
+    text-indent: 0 !important;
+    width: 100%;
+    letter-spacing: normal;
 }
 
 /* Services Content */
@@ -157,11 +190,11 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-    .services-page .hero-content h1 {
+    .services-page .hero-text h1 {
         font-size: 2.5rem;
     }
 
-    .services-page .hero-content p {
+    .services-page .hero-text p {
         font-size: 1.1rem;
     }
 

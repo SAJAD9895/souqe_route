@@ -36,29 +36,55 @@
     align-items: center;
     justify-content: center;
     z-index: 1;
-    text-align: center;
-    color: var(--color-white);
 }
 
 .page-hero .hero-content .container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.page-hero .hero-text {
+    max-width: 800px;
+    width: fit-content;
+    margin: 0 auto;
+    color: var(--color-white);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
+    align-items: flex-start;
 }
 
-.page-hero h1 {
+.page-hero .hero-text h1 {
     font-size: 3rem;
     font-weight: 600;
-    margin-bottom: var(--spacing-sm);
+    line-height: 1.2;
+    margin-bottom: var(--spacing-md);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     color: var(--color-white);
+    text-align: left !important;
+    text-indent: 0 !important;
+    width: 100%;
+    letter-spacing: normal;
 }
 
-.page-hero p {
+.page-hero .hero-text p {
     font-size: 1.3rem;
+    margin-bottom: var(--spacing-lg);
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     font-weight: 400;
     color: var(--color-white);
+    text-align: left !important;
+    text-indent: 0 !important;
+    width: 100%;
+    letter-spacing: normal;
 }
 
 /* Corporate Identity */
@@ -74,10 +100,15 @@
     margin-top: var(--spacing-lg);
 }
 
+.identity-text {
+    text-align: left;
+}
+
 .identity-text p {
     margin-bottom: var(--spacing-md);
     color: var(--color-black);
     line-height: 1.8;
+    text-align: left;
 }
 
 .identity-stats {
@@ -91,6 +122,7 @@
     background: var(--color-white);
     padding: var(--spacing-md);
     border-left: 4px solid var(--color-red);
+    text-align: left;
 }
 
 .stat-box h3 {
@@ -98,11 +130,13 @@
     margin-bottom: var(--spacing-sm);
     font-size: 1.3rem;
     font-weight: 600;
+    text-align: left;
 }
 
 .stat-box p {
     color: var(--color-black);
     line-height: 1.8;
+    text-align: left;
 }
 
 .identity-image img {
@@ -136,18 +170,21 @@
 .challenge-before,
 .challenge-after {
     padding: var(--spacing-md);
+    text-align: left;
 }
 
 .challenge-before h3 {
     color: var(--color-black);
     margin-bottom: var(--spacing-sm);
     font-weight: 600;
+    text-align: left;
 }
 
 .challenge-after h3 {
     color: var(--color-red);
     margin-bottom: var(--spacing-sm);
     font-weight: 600;
+    text-align: left;
 }
 
 .challenge-before h4,
@@ -156,18 +193,24 @@
     margin-bottom: var(--spacing-sm);
     font-size: 1.2rem;
     font-weight: 600;
+    text-align: left;
 }
 
 .challenge-before p,
 .challenge-after p {
     color: var(--color-black);
     line-height: 1.8;
+    text-align: left;
 }
 
 .challenge-arrow {
     font-size: 2rem;
     color: var(--color-red);
     font-weight: bold;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Values Section */
@@ -229,6 +272,7 @@
     background: #f9f9f9;
     padding: var(--spacing-md);
     border-left: 4px solid var(--color-red);
+    text-align: left;
 }
 
 .benefit-item h4 {
@@ -236,17 +280,23 @@
     margin-bottom: 0.5rem;
     font-size: 1.1rem;
     font-weight: 600;
+    text-align: left;
 }
 
 .benefit-item p {
     color: var(--color-black);
     line-height: 1.8;
+    text-align: left;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .page-hero h1 {
+    .page-hero .hero-text h1 {
         font-size: 2rem;
+    }
+
+    .page-hero .hero-text p {
+        font-size: 1.1rem;
     }
 
     .identity-content {
@@ -259,10 +309,29 @@
 
     .challenge-card {
         grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
     }
 
     .challenge-arrow {
         transform: rotate(90deg);
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-sm) 0;
+    }
+
+    .challenge-before,
+    .challenge-after {
+        text-align: center;
+    }
+
+    .challenge-before h3,
+    .challenge-after h3,
+    .challenge-before h4,
+    .challenge-after h4,
+    .challenge-before p,
+    .challenge-after p {
         text-align: center;
     }
 

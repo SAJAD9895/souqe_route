@@ -19,8 +19,10 @@ function Services() {
                 </div>
                 <div className="hero-content">
                     <div className="container">
-                        <h1>Our Services</h1>
-                        <p>Comprehensive Industrial Supply Chain Solutions</p>
+                        <div className="hero-text">
+                            <h1>Our Services</h1>
+                            <p>Comprehensive Industrial Supply Chain Solutions</p>
+                        </div>
                     </div>
                 </div>
             </section>
