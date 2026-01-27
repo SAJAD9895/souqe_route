@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<!-- SouqRoute - Saudi Arabia's Premier Industrial Supply Chain Platform -->
+
+<!-- Home Page -->
+<url>
+  <loc>https://souqroute.com/</loc>
+  <lastmod>2026-01-25T16:40:00+00:00</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>1.0</priority>
+</url>
+
+<!-- Main Pages -->
+<url>
+  <loc>https://souqroute.com/about</loc>
+  <lastmod>2026-01-25T16:40:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/services</loc>
+  <lastmod>2026-01-25T16:40:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/solutions</loc>
+  <lastmod>2026-01-25T16:40:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/vision-2030</loc>
+  <lastmod>2026-01-25T16:40:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<!-- Blog Section -->
+<url>
+  <loc>https://souqroute.com/blog</loc>
+  <lastmod>2026-01-25T16:40:00+00:00</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.9</priority>
+</url>
+
+<!-- Blog Posts -->
+<url>
+  <loc>https://souqroute.com/blog/digital-transformation-saudi-industrial-sector</loc>
+  <lastmod>2026-01-20T10:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/blog/vision-2030-industrial-growth</loc>
+  <lastmod>2026-01-18T10:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/blog/mep-procurement-best-practices</loc>
+  <lastmod>2026-01-15T10:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/blog/supplier-verification-importance</loc>
+  <lastmod>2026-01-12T10:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/blog/neom-giga-projects-supply-chain</loc>
+  <lastmod>2026-01-10T10:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://souqroute.com/blog/sme-empowerment-saudi-arabia</loc>
+  <lastmod>2026-01-08T10:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+</urlset>
+
+{
+  "cells": [],
+  "metadata": {
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 2
+}
