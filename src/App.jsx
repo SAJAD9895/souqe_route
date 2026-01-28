@@ -12,6 +12,7 @@ import Vision2030 from './pages/Vision2030';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 import Admin from './pages/Admin';
+import SuppliersSaudiArabia from './pages/SuppliersSaudiArabia';
 import './App.css';
 
 function App() {
@@ -78,6 +79,7 @@ function App() {
             <Route path="/vision-2030" element={<Vision2030 />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
+            <Route path="/supplier-in-saudi-arabia" element={<SuppliersSaudiArabia />} />
             <Route path="/souquerootadmin" element={<Admin />} />
           </Routes>
           <Footer />
