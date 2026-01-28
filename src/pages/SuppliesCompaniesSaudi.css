@@ -1,0 +1,633 @@
+/* Supplies Companies Saudi Arabia Page Styles */
+
+.supplies-companies-page {
+    background: #ffffff;
+}
+
+/* Page Hero */
+.supplies-companies-page .page-hero {
+    position: relative;
+    height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.supplies-companies-page .hero-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.supplies-companies-page .hero-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.supplies-companies-page .hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0, 51, 102, 0.85), rgba(16, 185, 129, 0.7));
+}
+
+.supplies-companies-page .hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: white;
+}
+
+.supplies-companies-page .hero-text h1 {
+    font-size: 3.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.supplies-companies-page .hero-text p {
+    font-size: 1.4rem;
+    font-weight: 300;
+    opacity: 0.95;
+}
+
+/* Introduction Section */
+.intro-section {
+    padding: 80px 0;
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+}
+
+.intro-content h2 {
+    font-size: 2.5rem;
+    color: #1a202c;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.lead-text {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: #4a5568;
+    text-align: center;
+    max-width: 950px;
+    margin: 2rem auto 0;
+}
+
+/* Types Section */
+.types-section {
+    padding: 80px 0;
+    background: #ffffff;
+}
+
+.types-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2.5rem;
+    margin-top: 3rem;
+}
+
+.type-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.4s ease;
+    text-align: center;
+}
+
+.type-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(0, 51, 102, 0.15);
+    border-color: #10b981;
+}
+
+.type-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+}
+
+.type-card h3 {
+    font-size: 1.5rem;
+    color: #003366;
+    margin-bottom: 1rem;
+}
+
+.type-card>p {
+    color: #4a5568;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+}
+
+.type-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.type-features li {
+    color: #1a202c;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.type-features li:last-child {
+    border-bottom: none;
+}
+
+.type-features li::before {
+    content: "▸ ";
+    color: #10b981;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+/* Why Choose Section */
+.why-choose-section {
+    padding: 80px 0;
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.benefit-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    border-left: 4px solid #003366;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.benefit-card:hover {
+    transform: translateX(8px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    border-left-color: #10b981;
+}
+
+.benefit-number {
+    position: absolute;
+    top: -15px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #003366, #004080);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 10px rgba(0, 51, 102, 0.3);
+}
+
+.benefit-card h3 {
+    font-size: 1.4rem;
+    color: #1a202c;
+    margin-bottom: 1rem;
+    padding-right: 60px;
+}
+
+.benefit-card p {
+    color: #4a5568;
+    line-height: 1.7;
+}
+
+/* Industries Section */
+.industries-section {
+    padding: 80px 0;
+    background: #ffffff;
+}
+
+.industries-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.industry-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.industry-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-color: #003366;
+}
+
+.industry-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.industry-item h3 {
+    font-size: 1.3rem;
+    color: #003366;
+    margin-bottom: 0.8rem;
+}
+
+.industry-item p {
+    color: #4a5568;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+/* How to Find Section */
+.how-to-find-section {
+    padding: 80px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e6f7f1 100%);
+}
+
+.process-timeline {
+    max-width: 900px;
+    margin: 3rem auto 0;
+    position: relative;
+}
+
+.process-timeline::before {
+    content: '';
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #003366, #10b981);
+}
+
+.timeline-item {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.timeline-marker {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #003366, #10b981);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(0, 51, 102, 0.3);
+    z-index: 2;
+}
+
+.timeline-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    flex: 1;
+}
+
+.timeline-content h3 {
+    font-size: 1.4rem;
+    color: #003366;
+    margin-bottom: 0.8rem;
+}
+
+.timeline-content p {
+    color: #4a5568;
+    line-height: 1.7;
+}
+
+/* Regional Coverage Section */
+.regional-coverage-section {
+    padding: 80px 0;
+    background: #ffffff;
+}
+
+.cities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.city-card {
+    background: linear-gradient(135deg, #003366 0%, #004080 100%);
+    padding: 2.5rem;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.city-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.city-card:hover::before {
+    opacity: 1;
+}
+
+.city-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 51, 102, 0.4);
+}
+
+.city-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.city-card p {
+    opacity: 0.9;
+    line-height: 1.6;
+    position: relative;
+    z-index: 1;
+}
+
+/* Quality Section */
+.quality-section {
+    padding: 80px 0;
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+}
+
+.quality-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+.quality-text h2 {
+    font-size: 2.3rem;
+    color: #1a202c;
+    margin-bottom: 1.5rem;
+}
+
+.quality-text>p {
+    font-size: 1.1rem;
+    color: #4a5568;
+    line-height: 1.8;
+    margin-bottom: 2rem;
+}
+
+.verification-points {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.verification-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.check-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.verification-item h4 {
+    font-size: 1.2rem;
+    color: #1a202c;
+    margin-bottom: 0.3rem;
+}
+
+.verification-item p {
+    color: #4a5568;
+    font-size: 0.95rem;
+}
+
+.quality-image img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Blog Section */
+.blog-section {
+    padding: 80px 0;
+    background: #ffffff;
+}
+
+.blog-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.blog-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.blog-card-mini {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.blog-card-mini:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-color: #10b981;
+}
+
+.blog-card-mini h4 {
+    font-size: 1.3rem;
+    color: #1a202c;
+    margin-bottom: 1rem;
+}
+
+.blog-card-mini p {
+    color: #4a5568;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.read-more {
+    color: #003366;
+    font-weight: 600;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.blog-card-mini:hover .read-more {
+    color: #10b981;
+    transform: translateX(5px);
+}
+
+.blog-cta {
+    text-align: center;
+    margin-top: 3rem;
+}
+
+/* CTA Section */
+.cta-section {
+    padding: 80px 0;
+    background: linear-gradient(135deg, #003366 0%, #10b981 100%);
+    color: white;
+}
+
+.cta-content {
+    text-align: center;
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+.cta-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.cta-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2.5rem;
+    opacity: 0.95;
+    line-height: 1.7;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* FAQ Section */
+.faq-section {
+    padding: 80px 0;
+    background: #f8f9fa;
+}
+
+.faq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.faq-item {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.faq-item h3 {
+    font-size: 1.2rem;
+    color: #003366;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.faq-item p {
+    color: #4a5568;
+    line-height: 1.7;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .supplies-companies-page .hero-text h1 {
+        font-size: 2.2rem;
+    }
+
+    .supplies-companies-page .hero-text p {
+        font-size: 1.1rem;
+    }
+
+    .intro-content h2 {
+        font-size: 2rem;
+    }
+
+    .lead-text {
+        font-size: 1.1rem;
+    }
+
+    .types-grid,
+    .benefits-grid,
+    .industries-grid,
+    .cities-grid,
+    .blog-cards-grid,
+    .faq-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .quality-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .process-timeline::before {
+        left: 15px;
+    }
+
+    .timeline-marker {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    .timeline-item {
+        gap: 1rem;
+    }
+
+    .cta-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .cta-buttons {
+        flex-direction: column;
+    }
+}

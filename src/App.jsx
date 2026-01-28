@@ -13,6 +13,7 @@ import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 import Admin from './pages/Admin';
 import SuppliersSaudiArabia from './pages/SuppliersSaudiArabia';
+import SuppliesCompaniesSaudi from './pages/SuppliesCompaniesSaudi';
 import './App.css';
 
 function App() {
@@ -80,6 +81,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
             <Route path="/supplier-in-saudi-arabia" element={<SuppliersSaudiArabia />} />
+            <Route path="/supplies-companies-saudi-arabia" element={<SuppliesCompaniesSaudi />} />
             <Route path="/souquerootadmin" element={<Admin />} />
           </Routes>
           <Footer />
