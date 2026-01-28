@@ -14,6 +14,7 @@ import BlogDetail from './pages/BlogDetail';
 import Admin from './pages/Admin';
 import SuppliersSaudiArabia from './pages/SuppliersSaudiArabia';
 import SuppliesCompaniesSaudi from './pages/SuppliesCompaniesSaudi';
+import WholesalerSupplierSaudi from './pages/WholesalerSupplierSaudi';
 import './App.css';
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
             <Route path="/blog/:slug" element={<BlogDetail />} />
             <Route path="/supplier-in-saudi-arabia" element={<SuppliersSaudiArabia />} />
             <Route path="/supplies-companies-saudi-arabia" element={<SuppliesCompaniesSaudi />} />
+            <Route path="/wholesaler-supplier-saudi-arabia" element={<WholesalerSupplierSaudi />} />
             <Route path="/souquerootadmin" element={<Admin />} />
           </Routes>
           <Footer />

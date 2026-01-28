@@ -28,6 +28,7 @@ function Footer() {
                             <li><Link to="/blog">Blog</Link></li>
                             <li><Link to="/supplier-in-saudi-arabia">Suppliers</Link></li>
                             <li><Link to="/supplies-companies-saudi-arabia">Supplies Companies</Link></li>
+                            <li><Link to="/wholesaler-supplier-saudi-arabia">Wholesalers</Link></li>
                         </ul>
                     </div>
                     <div className="footer-col">
