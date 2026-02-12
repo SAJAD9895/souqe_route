@@ -19,6 +19,8 @@ function Admin() {
         converted: 0,
         rejected: 0
     });
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [leadToDelete, setLeadToDelete] = useState(null);
 
     // Check if already logged in
     useEffect(() => {
@@ -139,6 +141,52 @@ function Admin() {
         });
     };
 
+    const handleDeleteClick = (lead) => {
+        setLeadToDelete(lead);
+        setDeleteModalOpen(true);
+    };
+
+    const handleCancelDelete = () => {
+        setDeleteModalOpen(false);
+        setLeadToDelete(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!leadToDelete) return;
+
+        try {
+            const { error } = await supabase
+                .from('leads')
+                .delete()
+                .eq('id', leadToDelete.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setLeads(prevLeads => prevLeads.filter(lead => lead.id !== leadToDelete.id));
+
+            // Recalculate stats
+            const updatedLeads = leads.filter(lead => lead.id !== leadToDelete.id);
+            const newStats = {
+                total: updatedLeads.length,
+                new: updatedLeads.filter(l => l.status === 'new').length,
+                contacted: updatedLeads.filter(l => l.status === 'contacted').length,
+                qualified: updatedLeads.filter(l => l.status === 'qualified').length,
+                converted: updatedLeads.filter(l => l.status === 'converted').length,
+                rejected: updatedLeads.filter(l => l.status === 'rejected').length
+            };
+            setStats(newStats);
+
+            toast.success('Lead deleted successfully');
+            setDeleteModalOpen(false);
+            setLeadToDelete(null);
+
+        } catch (error) {
+            console.error('Error deleting lead:', error);
+            toast.error('Error deleting lead. Please try again.');
+        }
+    };
+
     const getStatusColor = (status) => {
         const colors = {
             new: '#000000',      // Black
@@ -244,42 +292,42 @@ function Admin() {
                                 <div className="stat-icon" style={{ background: 'var(--color-black)' }}>📊</div>
                                 <div className="stat-info">
                                     <h3>Total Leads</h3>
-                                    <p className="stat-number">{stats.total}</p>
+                                    <p className="stat-number" style={{ color: 'var(--color-black)' }}>{stats.total}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-black)' }}>🆕</div>
                                 <div className="stat-info">
                                     <h3>New</h3>
-                                    <p className="stat-number">{stats.new}</p>
+                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.new}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-gray)' }}>📞</div>
                                 <div className="stat-info">
                                     <h3>Contacted</h3>
-                                    <p className="stat-number">{stats.contacted}</p>
+                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.contacted}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-red)' }}>✅</div>
                                 <div className="stat-info">
                                     <h3>Qualified</h3>
-                                    <p className="stat-number">{stats.qualified}</p>
+                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.qualified}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-red)' }}>🎉</div>
                                 <div className="stat-info">
                                     <h3>Converted</h3>
-                                    <p className="stat-number">{stats.converted}</p>
+                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.converted}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: '#333333' }}>❌</div>
                                 <div className="stat-info">
                                     <h3>Rejected</h3>
-                                    <p className="stat-number">{stats.rejected}</p>
+                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.rejected}</p>
                                 </div>
                             </div>
                         </div>
@@ -326,6 +374,7 @@ function Admin() {
                                             <th>Country</th>
                                             <th>Message</th>
                                             <th>Status</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -364,6 +413,15 @@ function Admin() {
                                                         <option value="rejected">Rejected</option>
                                                     </select>
                                                 </td>
+                                                <td>
+                                                    <button
+                                                        className="delete-btn"
+                                                        onClick={() => handleDeleteClick(lead)}
+                                                        title="Delete lead"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -373,6 +431,37 @@ function Admin() {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && (
+                <div className="modal-overlay" onClick={handleCancelDelete}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>⚠️ Confirm Delete</h2>
+                        </div>
+                        <div className="modal-body">
+                            <p>Are you sure you want to delete this lead?</p>
+                            {leadToDelete && (
+                                <div className="lead-details">
+                                    <p><strong>Name:</strong> {leadToDelete.first_name} {leadToDelete.last_name}</p>
+                                    <p><strong>Company:</strong> {leadToDelete.company || 'N/A'}</p>
+                                    <p><strong>Email:</strong> {leadToDelete.email || 'N/A'}</p>
+                                    <p><strong>Phone:</strong> {leadToDelete.phone || 'N/A'}</p>
+                                </div>
+                            )}
+                            <p className="warning-text">This action cannot be undone.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-cancel" onClick={handleCancelDelete}>
+                                Cancel
+                            </button>
+                            <button className="btn-delete" onClick={handleConfirmDelete}>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
