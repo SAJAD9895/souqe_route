@@ -31,27 +31,25 @@ function WelcomeModal() {
         <div className="modal-overlay">
             <div className="modal-container">
                 <button className="modal-close" onClick={handleClose}>×</button>
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <span className="modal-badge">New Platform</span>
-                        <h2>Welcome to SouqRoute</h2>
-                    </div>
-                    <p>
-                        Saudi Arabia's verified industrial marketplace is now live.
-                        Join suppliers and buyers connecting directly for <strong>MEP, Electrical, and Construction</strong> materials.
-                    </p>
-                    <ul className="modal-benefits">
-                        <li>✓ Verified Supplier Network</li>
-                        <li>✓ Instant RFQ Requests</li>
-                        <li>✓ Direct Messaging</li>
-                    </ul>
-                    <button className="btn btn-primary btn-block btn-pulse" onClick={handleRegisterClick}>
-                        Register Free Now
-                    </button>
-                    <button className="btn-link" onClick={handleClose}>
-                        I'll browse first
-                    </button>
+                <div className="modal-header">
+                    <span className="modal-badge">New Platform</span>
+                    <h2>Welcome to SouqRoute</h2>
                 </div>
+                <p>
+                    Saudi Arabia's verified industrial marketplace is now live.
+                    Join suppliers and buyers connecting directly for <strong>MEP, Electrical, and Construction</strong> materials.
+                </p>
+                <ul className="modal-benefits">
+                    <li>✓ Verified Supplier Network</li>
+                    <li>✓ Instant RFQ Requests</li>
+                    <li>✓ Direct Messaging</li>
+                </ul>
+                <button className="btn btn-primary btn-block btn-pulse" onClick={handleRegisterClick}>
+                    Register Free Now
+                </button>
+                <button className="btn-link" onClick={handleClose}>
+                    I'll browse first
+                </button>
             </div>
         </div>
     );
