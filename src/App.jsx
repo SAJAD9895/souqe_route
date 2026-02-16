@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
+import { supabase } from './lib/supabaseClient';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -18,6 +20,52 @@ import WholesalerSupplierSaudi from './pages/WholesalerSupplierSaudi';
 import './App.css';
 
 function App() {
+  useEffect(() => {
+    // Listen for auth changes (like email confirmation)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN') {
+        // If we just signed in, check if it might be an email confirmation
+        // Usually, a fresh session from a link means verified
+        console.log('User signed in:', session?.user?.email);
+      }
+      if (event === 'USER_UPDATED') {
+        toast.success('Email confirmed successfully! You are now logged in.');
+      }
+    });
+
+    // Check URL for hash handling (Supabase redirect)
+    const hash = window.location.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1)); // remove the #
+
+      // key names from Supabase redirect
+      const error = params.get('error');
+      const errorCode = params.get('error_code');
+      const errorDescription = params.get('error_description');
+      const accessToken = params.get('access_token');
+
+      if (error || errorCode) {
+        // Handle Errors (e.g. link expired)
+        const message = errorDescription
+          ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
+          : 'Error validating email link.';
+
+        setTimeout(() => {
+          toast.error(message);
+        }, 1000);
+      } else if (accessToken) {
+        // Handle Success
+        setTimeout(() => {
+          toast.success('Welcome! Your email has been verified.');
+        }, 1000);
+      }
+    }
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <HelmetProvider>
       <Router>

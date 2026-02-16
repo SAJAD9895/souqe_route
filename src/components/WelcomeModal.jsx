@@ -33,7 +33,7 @@ function WelcomeModal() {
                 <button className="modal-close" onClick={handleClose}>×</button>
                 <div className="modal-header">
                     <span className="modal-badge">New Platform</span>
-                    <h2>Welcome to SouqRoute</h2>
+                    <h2 className="modal-w-header">Welcome to SouqRoute</h2>
                 </div>
                 <p>
                     Saudi Arabia's verified industrial marketplace is now live.

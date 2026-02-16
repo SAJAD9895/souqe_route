@@ -14,6 +14,7 @@
 }
 
 .modal-container {
+    justify-content: center;
     background: var(--color-white);
     padding: 32px;
     border-radius: 12px;
@@ -51,7 +52,7 @@
     align-items: center;
     justify-content: center;
 }
-
+.modal-w-header{ justify-content:center; padding: 4px 12px;}
 .modal-badge {
     background: var(--color-black);
     color: var(--color-white);

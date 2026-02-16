@@ -130,6 +130,65 @@ function Admin() {
         }
     };
 
+    const [newUserEmail, setNewUserEmail] = useState('');
+    const [newUserPassword, setNewUserPassword] = useState('');
+    const [creatingUser, setCreatingUser] = useState(false);
+    const [resendEmail, setResendEmail] = useState('');
+    const [resending, setResending] = useState(false);
+
+    const handleCreateUser = async (e) => {
+        e.preventDefault();
+        setCreatingUser(true);
+
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email: newUserEmail,
+                password: newUserPassword,
+            });
+
+            if (error) throw error;
+
+            toast.success('User account created successfully!');
+            setNewUserEmail('');
+            setNewUserPassword('');
+
+            // If email confirmation is required, show a note
+            if (data.user && !data.session) {
+                toast('Please check email for confirmation if required.', {
+                    icon: 'ℹ️',
+                });
+            }
+
+        } catch (error) {
+            console.error('Error creating user:', error);
+            toast.error(error.message || 'Error creating user account');
+        } finally {
+            setCreatingUser(false);
+        }
+    };
+
+    const handleResendConfirmation = async (e) => {
+        e.preventDefault();
+        setResending(true);
+
+        try {
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: resendEmail,
+            });
+
+            if (error) throw error;
+
+            toast.success('Confirmation email resent!');
+            setResendEmail('');
+        } catch (error) {
+            console.error('Error resending confirmation:', error);
+            toast.error(error.message || 'Error resending email');
+        } finally {
+            setResending(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
@@ -268,6 +327,13 @@ function Admin() {
                         <span className="nav-icon">📋</span>
                         Leads
                     </button>
+                    <button
+                        className={`admin-nav-item ${activeTab === 'create-account' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('create-account')}
+                    >
+                        <span className="nav-icon">👤</span>
+                        Create Account
+                    </button>
                 </nav>
                 <button className="admin-logout-btn" onClick={handleLogout}>
                     <span className="nav-icon">🚪</span>
@@ -277,7 +343,11 @@ function Admin() {
 
             <div className="admin-content">
                 <div className="admin-header">
-                    <h1>{activeTab === 'dashboard' ? 'Dashboard' : 'Leads Management'}</h1>
+                    <h1>
+                        {activeTab === 'dashboard' && 'Dashboard'}
+                        {activeTab === 'leads' && 'Leads Management'}
+                        {activeTab === 'create-account' && 'Create Account'}
+                    </h1>
                     {activeTab === 'leads' && (
                         <button className="admin-refresh-btn" onClick={fetchLeads}>
                             🔄 Refresh
@@ -299,35 +369,35 @@ function Admin() {
                                 <div className="stat-icon" style={{ background: 'var(--color-black)' }}>🆕</div>
                                 <div className="stat-info">
                                     <h3>New</h3>
-                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.new}</p>
+                                    <p className="stat-number" style={{ color: 'var(--color-black)' }}>{stats.new}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-gray)' }}>📞</div>
                                 <div className="stat-info">
                                     <h3>Contacted</h3>
-                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.contacted}</p>
+                                    <p className="stat-number" style={{ color: 'var(--color-black)' }}>{stats.contacted}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-red)' }}>✅</div>
                                 <div className="stat-info">
                                     <h3>Qualified</h3>
-                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.qualified}</p>
+                                    <p className="stat-number" style={{ color: 'var(--color-black)' }}>{stats.qualified}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: 'var(--color-red)' }}>🎉</div>
                                 <div className="stat-info">
                                     <h3>Converted</h3>
-                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.converted}</p>
+                                    <p className="stat-number" style={{ color: 'var(--color-black)' }}>{stats.converted}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon" style={{ background: '#333333' }}>❌</div>
                                 <div className="stat-info">
                                     <h3>Rejected</h3>
-                                    <p className="stat-number"style={{ color: 'var(--color-black)' }}>{stats.rejected}</p>
+                                    <p className="stat-number" style={{ color: 'var(--color-black)' }}>{stats.rejected}</p>
                                 </div>
                             </div>
                         </div>
@@ -428,6 +498,74 @@ function Admin() {
                                 </table>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'create-account' && (
+                    <div className="admin-create-account">
+                        <div className="admin-login-container" style={{ margin: '0 0', maxWidth: '500px' }}>
+                            <div className="admin-login-header">
+                                <h2>Create New User</h2>
+                                <p>Create a new account for accessing the platform.</p>
+                            </div>
+                            <form onSubmit={handleCreateUser} className="admin-login-form">
+                                <div className="admin-form-group">
+                                    <label htmlFor="newUserEmail">Email Address</label>
+                                    <input
+                                        type="email"
+                                        id="newUserEmail"
+                                        value={newUserEmail}
+                                        onChange={(e) => setNewUserEmail(e.target.value)}
+                                        placeholder="Enter email"
+                                        required
+                                    />
+                                </div>
+                                <div className="admin-form-group">
+                                    <label htmlFor="newUserPassword">Password</label>
+                                    <input
+                                        type="password"
+                                        id="newUserPassword"
+                                        value={newUserPassword}
+                                        onChange={(e) => setNewUserPassword(e.target.value)}
+                                        placeholder="Enter password (min 6 chars)"
+                                        required
+                                        minLength={6}
+                                    />
+                                </div>
+                                <button type="submit" className="admin-login-btn" disabled={creatingUser}>
+                                    {creatingUser ? 'Creating Account...' : 'Create Account'}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Resend Confirmation Section */}
+                        <div className="admin-login-container" style={{ margin: '32px 0 0 0', maxWidth: '500px' }}>
+                            <div className="admin-login-header">
+                                <h2>Resend Confirmation</h2>
+                                <p>Link expired? Resend confirmation email.</p>
+                            </div>
+                            <form onSubmit={handleResendConfirmation} className="admin-login-form">
+                                <div className="admin-form-group">
+                                    <label htmlFor="resendEmail">Unverified Account Email</label>
+                                    <input
+                                        type="email"
+                                        id="resendEmail"
+                                        value={resendEmail}
+                                        onChange={(e) => setResendEmail(e.target.value)}
+                                        placeholder="Enter email to resend link"
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="admin-login-btn"
+                                    disabled={resending}
+                                    style={{ background: 'var(--color-gray)' }}
+                                >
+                                    {resending ? 'Sending...' : 'Resend Email'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 )}
             </div>
