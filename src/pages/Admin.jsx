@@ -69,7 +69,19 @@ function Admin() {
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            console.log('Supabase leads response → data:', data, '| error:', error);
+
+            if (error) {
+                console.error('Supabase SELECT error:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                console.warn('No data returned — this is likely a Supabase RLS (Row Level Security) policy blocking SELECT for anon users. Go to Supabase → Authentication → Policies and add a SELECT policy for the leads table.');
+                toast('No leads found. If data exists in DB, check Supabase RLS SELECT policy for the leads table.', { icon: '⚠️', duration: 6000 });
+            } else {
+                toast.success(`Loaded ${data.length} leads`);
+            }
 
             setLeads(data || []);
 
@@ -83,10 +95,10 @@ function Admin() {
                 rejected: data?.filter(l => l.status === 'rejected').length || 0
             };
             setStats(newStats);
-            toast.success(`Loaded ${data?.length || 0} leads`);
+
         } catch (error) {
             console.error('Error fetching leads:', error);
-            toast.error('Error loading leads. Please try again.');
+            toast.error(`Error loading leads: ${error.message || 'Check Supabase RLS policies.'}`);
         } finally {
             setLoading(false);
         }
@@ -214,12 +226,20 @@ function Admin() {
         if (!leadToDelete) return;
 
         try {
-            const { error } = await supabase
+            const { error, count } = await supabase
                 .from('leads')
-                .delete()
+                .delete({ count: 'exact' })
                 .eq('id', leadToDelete.id);
 
             if (error) throw error;
+
+            // If count is 0, RLS or permission silently blocked the delete
+            if (count === 0) {
+                toast.error('Delete blocked by database permissions (RLS). Please allow delete in Supabase policies.');
+                setDeleteModalOpen(false);
+                setLeadToDelete(null);
+                return;
+            }
 
             // Update local state
             setLeads(prevLeads => prevLeads.filter(lead => lead.id !== leadToDelete.id));
@@ -242,7 +262,7 @@ function Admin() {
 
         } catch (error) {
             console.error('Error deleting lead:', error);
-            toast.error('Error deleting lead. Please try again.');
+            toast.error(`Error deleting lead: ${error.message || 'Please check Supabase RLS policies.'}`);
         }
     };
 
@@ -424,7 +444,7 @@ function Admin() {
                                 <table className="leads-table">
                                     <thead>
                                         <tr>
-                                            <th>ID</th>
+                                            <th>#</th>
                                             <th>Date</th>
                                             <th>First Name</th>
                                             <th>Last Name</th>
@@ -448,9 +468,9 @@ function Admin() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {leads.map((lead) => (
+                                        {leads.map((lead, index) => (
                                             <tr key={lead.id}>
-                                                <td><strong>#{lead.id}</strong></td>
+                                                <td><strong>{index + 1}</strong></td>
                                                 <td className="nowrap">{formatDate(lead.created_at)}</td>
                                                 <td><strong>{lead.first_name || '-'}</strong></td>
                                                 <td><strong>{lead.last_name || '-'}</strong></td>
