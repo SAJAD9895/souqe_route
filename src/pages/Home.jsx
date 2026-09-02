@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
 import './Home.css';
 import '../styles/animations.css';
 import RegistrationForm from '../components/RegistrationForm';
 import WelcomeModal from '../components/WelcomeModal';
-import { supabase } from '../lib/supabaseClient';
 import { useScrollAnimations } from '../hooks/useScrollAnimations';
 
 function Home() {

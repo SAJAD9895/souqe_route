@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Email/Password sign-up is open to anyone, so `request.auth != null`
+    // would let a stranger register and read every lead. Access is therefore
+    // gated on explicit admin UIDs. Add a UID here to grant admin access
+    // (Firebase console -> Authentication -> Users), then redeploy.
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.uid in [
+               'ECcx2ZCx6NSASHdTdKpUx118aY53'  // info@souqroute.com
+             ];
+    }
+
+    // ---------------------------------------------------------------
+    // leads — registration-form submissions.
+    //
+    // Anyone may CREATE a lead (the public form is open to anonymous
+    // visitors). Leads contain personal data, so reading, editing and
+    // deleting them is restricted to signed-in admins (see isAdmin).
+    // ---------------------------------------------------------------
+    match /leads/{leadId} {
+
+      function isString(data, field, maxLen) {
+        return data[field] is string
+            && data[field].size() > 0
+            && data[field].size() <= maxLen;
+      }
+
+      function isOptionalString(data, field, maxLen) {
+        return !(field in data)
+            || (data[field] is string && data[field].size() <= maxLen);
+      }
+
+      function isValidLead(data) {
+        return data.keys().hasAll([
+                 'first_name', 'last_name', 'company', 'business_activity',
+                 'phone', 'email', 'city', 'country', 'status', 'created_at'
+               ])
+            && data.keys().hasOnly([
+                 'first_name', 'last_name', 'company', 'business_activity',
+                 'brands_represented', 'phone', 'mobile_number', 'email',
+                 'website', 'office_no', 'building_name', 'street',
+                 'locality', 'po_box', 'city', 'country', 'message',
+                 'status', 'created_at'
+               ])
+            // required
+            && isString(data, 'first_name', 100)
+            && isString(data, 'last_name', 100)
+            && isString(data, 'company', 200)
+            && isString(data, 'business_activity', 200)
+            && isString(data, 'phone', 40)
+            && isString(data, 'email', 254)
+            && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+            && isString(data, 'city', 100)
+            && isString(data, 'country', 100)
+            // optional
+            && isOptionalString(data, 'brands_represented', 500)
+            && isOptionalString(data, 'mobile_number', 40)
+            && isOptionalString(data, 'website', 300)
+            && isOptionalString(data, 'office_no', 100)
+            && isOptionalString(data, 'building_name', 200)
+            && isOptionalString(data, 'street', 200)
+            && isOptionalString(data, 'locality', 200)
+            && isOptionalString(data, 'po_box', 50)
+            && isOptionalString(data, 'message', 2000)
+            // server-controlled
+            && data.status == 'new'
+            && data.created_at == request.time;
+      }
+
+      allow create: if isValidLead(request.resource.data);
+      allow read: if isAdmin();
+      // Admins may only move a lead between the known pipeline statuses.
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status'])
+                    && request.resource.data.status in
+                         ['new', 'contacted', 'qualified', 'converted', 'rejected'];
+      allow delete: if isAdmin();
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

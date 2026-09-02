@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import {
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    updateDoc
+} from 'firebase/firestore';
+import {
+    createUserWithEmailAndPassword,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signOut
+} from 'firebase/auth';
+import { auth, db, LEADS_COLLECTION } from '../lib/firebase';
 import toast from 'react-hot-toast';
 import './Admin.css';
 
@@ -19,13 +34,19 @@ function Admin() {
         converted: 0,
         rejected: 0
     });
+    const [permissionDenied, setPermissionDenied] = useState(false);
+    const [newUserEmail, setNewUserEmail] = useState('');
+    const [newUserPassword, setNewUserPassword] = useState('');
+    const [creatingUser, setCreatingUser] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [sendingReset, setSendingReset] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [leadToDelete, setLeadToDelete] = useState(null);
 
     // Check if already logged in
     useEffect(() => {
-        const auth = localStorage.getItem('souqroute_admin_auth');
-        if (auth === 'true') {
+        const savedAuth = localStorage.getItem('souqroute_admin_auth');
+        if (savedAuth === 'true') {
             setIsAuthenticated(true);
         }
     }, []);
@@ -41,7 +62,6 @@ function Admin() {
         e.preventDefault();
         setLoginError('');
 
-        // Simple authentication (username: Admin, password: Admin!123)
         if (username === 'Admin' && password === 'Admin!123') {
             setIsAuthenticated(true);
             localStorage.setItem('souqroute_admin_auth', 'true');
@@ -58,47 +78,44 @@ function Admin() {
         setUsername('');
         setPassword('');
         setActiveTab('dashboard');
+        setLeads([]);
         toast.success('Logged out successfully');
     };
 
+    const computeStats = (rows) => ({
+        total: rows.length,
+        new: rows.filter(l => l.status === 'new').length,
+        contacted: rows.filter(l => l.status === 'contacted').length,
+        qualified: rows.filter(l => l.status === 'qualified').length,
+        converted: rows.filter(l => l.status === 'converted').length,
+        rejected: rows.filter(l => l.status === 'rejected').length
+    });
+
     const fetchLeads = async () => {
         setLoading(true);
+        setPermissionDenied(false);
         try {
-            const { data, error } = await supabase
-                .from('leads')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const snapshot = await getDocs(
+                query(collection(db, LEADS_COLLECTION), orderBy('created_at', 'desc'))
+            );
+            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            console.log('Supabase leads response → data:', data, '| error:', error);
-
-            if (error) {
-                console.error('Supabase SELECT error:', error);
-                throw error;
-            }
-
-            if (!data || data.length === 0) {
-                console.warn('No data returned — this is likely a Supabase RLS (Row Level Security) policy blocking SELECT for anon users. Go to Supabase → Authentication → Policies and add a SELECT policy for the leads table.');
-                toast('No leads found. If data exists in DB, check Supabase RLS SELECT policy for the leads table.', { icon: '⚠️', duration: 6000 });
+            if (data.length === 0) {
+                toast('No leads found yet.', { icon: 'ℹ️' });
             } else {
                 toast.success(`Loaded ${data.length} leads`);
             }
 
-            setLeads(data || []);
-
-            // Calculate stats
-            const newStats = {
-                total: data?.length || 0,
-                new: data?.filter(l => l.status === 'new').length || 0,
-                contacted: data?.filter(l => l.status === 'contacted').length || 0,
-                qualified: data?.filter(l => l.status === 'qualified').length || 0,
-                converted: data?.filter(l => l.status === 'converted').length || 0,
-                rejected: data?.filter(l => l.status === 'rejected').length || 0
-            };
-            setStats(newStats);
-
+            setLeads(data);
+            setStats(computeStats(data));
         } catch (error) {
             console.error('Error fetching leads:', error);
-            toast.error(`Error loading leads: ${error.message || 'Check Supabase RLS policies.'}`);
+            if (error.code === 'permission-denied') {
+                setPermissionDenied(true);
+                toast.error('Reading leads is blocked by Firestore security rules.', { duration: 6000 });
+            } else {
+                toast.error(`Error loading leads: ${error.message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -106,103 +123,81 @@ function Admin() {
 
     const updateLeadStatus = async (leadId, newStatus) => {
         try {
-            const { error } = await supabase
-                .from('leads')
-                .update({ status: newStatus })
-                .eq('id', leadId);
+            await updateDoc(doc(db, LEADS_COLLECTION, leadId), { status: newStatus });
 
-            if (error) throw error;
-
-            // Update local state
-            setLeads(prevLeads =>
-                prevLeads.map(lead =>
-                    lead.id === leadId ? { ...lead, status: newStatus } : lead
-                )
-            );
-
-            // Recalculate stats
             const updatedLeads = leads.map(lead =>
                 lead.id === leadId ? { ...lead, status: newStatus } : lead
             );
-            const newStats = {
-                total: updatedLeads.length,
-                new: updatedLeads.filter(l => l.status === 'new').length,
-                contacted: updatedLeads.filter(l => l.status === 'contacted').length,
-                qualified: updatedLeads.filter(l => l.status === 'qualified').length,
-                converted: updatedLeads.filter(l => l.status === 'converted').length,
-                rejected: updatedLeads.filter(l => l.status === 'rejected').length
-            };
-            setStats(newStats);
+            setLeads(updatedLeads);
+            setStats(computeStats(updatedLeads));
 
             toast.success(`Status updated to ${newStatus}`);
-
         } catch (error) {
             console.error('Error updating lead status:', error);
-            toast.error('Error updating status. Please try again.');
+            toast.error(
+                error.code === 'permission-denied'
+                    ? 'Update blocked by Firestore security rules.'
+                    : 'Error updating status. Please try again.'
+            );
         }
     };
-
-    const [newUserEmail, setNewUserEmail] = useState('');
-    const [newUserPassword, setNewUserPassword] = useState('');
-    const [creatingUser, setCreatingUser] = useState(false);
-    const [resendEmail, setResendEmail] = useState('');
-    const [resending, setResending] = useState(false);
 
     const handleCreateUser = async (e) => {
         e.preventDefault();
         setCreatingUser(true);
 
         try {
-            const { data, error } = await supabase.auth.signUp({
-                email: newUserEmail,
-                password: newUserPassword,
-            });
+            const { user } = await createUserWithEmailAndPassword(
+                auth, newUserEmail.trim(), newUserPassword
+            );
+            await sendEmailVerification(user);
 
-            if (error) throw error;
+            // Creating a user also signs this browser in as that user. Drop the
+            // session so the panel is not left authenticated as the new account.
+            await signOut(auth);
 
-            toast.success('User account created successfully!');
+            toast.success(`Account created for ${user.email}. Verification email sent.`);
             setNewUserEmail('');
             setNewUserPassword('');
-
-            // If email confirmation is required, show a note
-            if (data.user && !data.session) {
-                toast('Please check email for confirmation if required.', {
-                    icon: 'ℹ️',
-                });
-            }
-
         } catch (error) {
             console.error('Error creating user:', error);
-            toast.error(error.message || 'Error creating user account');
+            const messages = {
+                'auth/email-already-in-use': 'That email already has an account.',
+                'auth/invalid-email': 'That email address is not valid.',
+                'auth/weak-password': 'Password must be at least 6 characters.',
+                'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase.'
+            };
+            toast.error(messages[error.code] || 'Error creating user account');
         } finally {
             setCreatingUser(false);
         }
     };
 
-    const handleResendConfirmation = async (e) => {
+    const handleSendPasswordReset = async (e) => {
         e.preventDefault();
-        setResending(true);
+        setSendingReset(true);
 
         try {
-            const { error } = await supabase.auth.resend({
-                type: 'signup',
-                email: resendEmail,
-            });
-
-            if (error) throw error;
-
-            toast.success('Confirmation email resent!');
-            setResendEmail('');
+            await sendPasswordResetEmail(auth, resetEmail.trim());
+            toast.success('Password reset email sent.');
+            setResetEmail('');
         } catch (error) {
-            console.error('Error resending confirmation:', error);
-            toast.error(error.message || 'Error resending email');
+            console.error('Error sending reset email:', error);
+            const messages = {
+                'auth/invalid-email': 'That email address is not valid.',
+                'auth/user-not-found': 'No account exists for that email.'
+            };
+            toast.error(messages[error.code] || 'Could not send reset email.');
         } finally {
-            setResending(false);
+            setSendingReset(false);
         }
     };
 
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
+    const formatDate = (value) => {
+        if (!value) return '-';
+        // Firestore Timestamp -> Date; also tolerates ISO strings from old data.
+        const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
+        if (Number.isNaN(date.getTime())) return '-';
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -226,43 +221,22 @@ function Admin() {
         if (!leadToDelete) return;
 
         try {
-            const { error, count } = await supabase
-                .from('leads')
-                .delete({ count: 'exact' })
-                .eq('id', leadToDelete.id);
+            await deleteDoc(doc(db, LEADS_COLLECTION, leadToDelete.id));
 
-            if (error) throw error;
-
-            // If count is 0, RLS or permission silently blocked the delete
-            if (count === 0) {
-                toast.error('Delete blocked by database permissions (RLS). Please allow delete in Supabase policies.');
-                setDeleteModalOpen(false);
-                setLeadToDelete(null);
-                return;
-            }
-
-            // Update local state
-            setLeads(prevLeads => prevLeads.filter(lead => lead.id !== leadToDelete.id));
-
-            // Recalculate stats
             const updatedLeads = leads.filter(lead => lead.id !== leadToDelete.id);
-            const newStats = {
-                total: updatedLeads.length,
-                new: updatedLeads.filter(l => l.status === 'new').length,
-                contacted: updatedLeads.filter(l => l.status === 'contacted').length,
-                qualified: updatedLeads.filter(l => l.status === 'qualified').length,
-                converted: updatedLeads.filter(l => l.status === 'converted').length,
-                rejected: updatedLeads.filter(l => l.status === 'rejected').length
-            };
-            setStats(newStats);
+            setLeads(updatedLeads);
+            setStats(computeStats(updatedLeads));
 
             toast.success('Lead deleted successfully');
             setDeleteModalOpen(false);
             setLeadToDelete(null);
-
         } catch (error) {
             console.error('Error deleting lead:', error);
-            toast.error(`Error deleting lead: ${error.message || 'Please check Supabase RLS policies.'}`);
+            toast.error(
+                error.code === 'permission-denied'
+                    ? 'Delete blocked by Firestore security rules.'
+                    : `Error deleting lead: ${error.message}`
+            );
         }
     };
 
@@ -301,6 +275,7 @@ function Admin() {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Enter username"
+                                autoComplete="username"
                                 required
                             />
                         </div>
@@ -312,6 +287,7 @@ function Admin() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Enter password"
+                                autoComplete="current-password"
                                 required
                             />
                         </div>
@@ -435,6 +411,26 @@ function Admin() {
                     <div className="admin-leads">
                         {loading ? (
                             <div className="admin-loading">Loading leads...</div>
+                        ) : permissionDenied ? (
+                            <div className="admin-empty">
+                                <p><strong>Leads are read-protected.</strong></p>
+                                <p>
+                                    This login is checked in the browser only, so it gives no
+                                    database identity. Firestore rules let the public form submit
+                                    leads but allow reads only for an admin UID listed in
+                                    <code> isAdmin() </code> in <code>firestore.rules</code>.
+                                </p>
+                                <p>
+                                    View submissions in the{' '}
+                                    <a
+                                        href="https://console.firebase.google.com/project/souqroute/firestore/databases/-default-/data/~2Fleads"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Firebase console
+                                    </a>.
+                                </p>
+                            </div>
                         ) : leads.length === 0 ? (
                             <div className="admin-empty">
                                 <p>No leads found.</p>
@@ -526,7 +522,7 @@ function Admin() {
                         <div className="admin-login-container" style={{ margin: '0 0', maxWidth: '500px' }}>
                             <div className="admin-login-header">
                                 <h2>Create New User</h2>
-                                <p>Create a new account for accessing the platform.</p>
+                                <p>Create a new Firebase account for accessing the platform.</p>
                             </div>
                             <form onSubmit={handleCreateUser} className="admin-login-form">
                                 <div className="admin-form-group">
@@ -536,7 +532,8 @@ function Admin() {
                                         id="newUserEmail"
                                         value={newUserEmail}
                                         onChange={(e) => setNewUserEmail(e.target.value)}
-                                        placeholder="Enter email"
+                                        placeholder="user@example.com"
+                                        autoComplete="off"
                                         required
                                     />
                                 </div>
@@ -547,47 +544,53 @@ function Admin() {
                                         id="newUserPassword"
                                         value={newUserPassword}
                                         onChange={(e) => setNewUserPassword(e.target.value)}
-                                        placeholder="Enter password (min 6 chars)"
-                                        required
+                                        placeholder="At least 6 characters"
                                         minLength={6}
-                                    />
-                                </div>
-                                <button type="submit" className="admin-login-btn" disabled={creatingUser}>
-                                    {creatingUser ? 'Creating Account...' : 'Create Account'}
-                                </button>
-                            </form>
-                        </div>
-
-                        {/* Resend Confirmation Section */}
-                        <div className="admin-login-container" style={{ margin: '32px 0 0 0', maxWidth: '500px' }}>
-                            <div className="admin-login-header">
-                                <h2>Resend Confirmation</h2>
-                                <p>Link expired? Resend confirmation email.</p>
-                            </div>
-                            <form onSubmit={handleResendConfirmation} className="admin-login-form">
-                                <div className="admin-form-group">
-                                    <label htmlFor="resendEmail">Unverified Account Email</label>
-                                    <input
-                                        type="email"
-                                        id="resendEmail"
-                                        value={resendEmail}
-                                        onChange={(e) => setResendEmail(e.target.value)}
-                                        placeholder="Enter email to resend link"
+                                        autoComplete="new-password"
                                         required
                                     />
                                 </div>
                                 <button
                                     type="submit"
                                     className="admin-login-btn"
-                                    disabled={resending}
-                                    style={{ background: 'var(--color-gray)' }}
+                                    disabled={creatingUser}
                                 >
-                                    {resending ? 'Sending...' : 'Resend Email'}
+                                    {creatingUser ? 'Creating...' : 'Create Account'}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Password Reset Section */}
+                        <div className="admin-login-container" style={{ margin: '2rem 0 0', maxWidth: '500px' }}>
+                            <div className="admin-login-header">
+                                <h2>Send Password Reset</h2>
+                                <p>Email a reset link to an existing account.</p>
+                            </div>
+                            <form onSubmit={handleSendPasswordReset} className="admin-login-form">
+                                <div className="admin-form-group">
+                                    <label htmlFor="resetEmail">Account Email</label>
+                                    <input
+                                        type="email"
+                                        id="resetEmail"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        placeholder="Enter email to send reset link"
+                                        autoComplete="off"
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="admin-login-btn"
+                                    disabled={sendingReset}
+                                >
+                                    {sendingReset ? 'Sending...' : 'Send Reset Email'}
                                 </button>
                             </form>
                         </div>
                     </div>
                 )}
+
             </div>
 
             {/* Delete Confirmation Modal */}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db, LEADS_COLLECTION } from '../lib/firebase';
 import './RegistrationForm.css';
 import toast from 'react-hot-toast';
 
@@ -111,33 +112,30 @@ function RegistrationForm() {
             existingData.push(newLead);
             localStorage.setItem('souqroute_leads', JSON.stringify(existingData));
 
-            // 2. Send to Supabase
-            // Note: Ensure your Supabase table has these columns created!
-            const { error } = await supabase
-                .from('leads')
-                .insert([
-                    {
-                        first_name: formData.firstName,
-                        last_name: formData.lastName,
-                        company: formData.company,
-                        business_activity: formData.businessActivity,
-                        brands_represented: formData.brands,
-                        phone: formData.phone,
-                        mobile_number: formData.mobile,
-                        email: formData.email,
-                        website: formData.website,
-                        office_no: formData.officeNo,
-                        building_name: formData.buildingName,
-                        street: formData.street,
-                        locality: formData.locality,
-                        po_box: formData.poBox,
-                        city: formData.city,
-                        country: formData.country,
-                        message: formData.message
-                    }
-                ]);
-
-            if (error) throw error;
+            // 2. Send to Firestore (collection: `leads`).
+            // Keys are snake_case to match the document shape enforced by
+            // firestore.rules — keep both in sync when adding a field.
+            await addDoc(collection(db, LEADS_COLLECTION), {
+                first_name: formData.firstName.trim(),
+                last_name: formData.lastName.trim(),
+                company: formData.company.trim(),
+                business_activity: formData.businessActivity.trim(),
+                brands_represented: formData.brands.trim(),
+                phone: formData.phone.trim(),
+                mobile_number: formData.mobile.trim(),
+                email: formData.email.trim(),
+                website: formData.website.trim(),
+                office_no: formData.officeNo.trim(),
+                building_name: formData.buildingName.trim(),
+                street: formData.street.trim(),
+                locality: formData.locality.trim(),
+                po_box: formData.poBox.trim(),
+                city: formData.city.trim(),
+                country: formData.country.trim(),
+                message: formData.message.trim(),
+                status: 'new',
+                created_at: serverTimestamp()
+            });
 
             // Dismiss loading toast
             toast.dismiss(loadingToast);
