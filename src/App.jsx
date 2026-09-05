@@ -16,7 +16,7 @@ import SuppliersSaudiArabia from './pages/SuppliersSaudiArabia';
 import SuppliesCompaniesSaudi from './pages/SuppliesCompaniesSaudi';
 import WholesalerSupplierSaudi from './pages/WholesalerSupplierSaudi';
 import './App.css';
-
+//this app is made by souque.com and souque.com is a product of souque group
 function App() {
   return (
     <HelmetProvider>
