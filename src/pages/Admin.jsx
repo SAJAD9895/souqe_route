@@ -8,13 +8,8 @@ import {
     query,
     updateDoc
 } from 'firebase/firestore';
-import {
-    createUserWithEmailAndPassword,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signOut
-} from 'firebase/auth';
-import { auth, db, LEADS_COLLECTION } from '../lib/firebase';
+import { db, LEADS_COLLECTION } from '../lib/firebase';
+import { supabase } from '../lib/supabaseClient';
 import toast from 'react-hot-toast';
 import './Admin.css';
 
@@ -38,8 +33,8 @@ function Admin() {
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
     const [creatingUser, setCreatingUser] = useState(false);
-    const [resetEmail, setResetEmail] = useState('');
-    const [sendingReset, setSendingReset] = useState(false);
+    const [resendEmail, setResendEmail] = useState('');
+    const [resending, setResending] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [leadToDelete, setLeadToDelete] = useState(null);
 
@@ -147,49 +142,50 @@ function Admin() {
         setCreatingUser(true);
 
         try {
-            const { user } = await createUserWithEmailAndPassword(
-                auth, newUserEmail.trim(), newUserPassword
-            );
-            await sendEmailVerification(user);
+            const { data, error } = await supabase.auth.signUp({
+                email: newUserEmail.trim(),
+                password: newUserPassword,
+            });
 
-            // Creating a user also signs this browser in as that user. Drop the
-            // session so the panel is not left authenticated as the new account.
-            await signOut(auth);
+            if (error) throw error;
 
-            toast.success(`Account created for ${user.email}. Verification email sent.`);
+            toast.success('User account created successfully!');
             setNewUserEmail('');
             setNewUserPassword('');
+
+            // No session back means Supabase is waiting on email confirmation.
+            if (data.user && !data.session) {
+                toast('Please check email for confirmation if required.', {
+                    icon: 'ℹ️',
+                });
+            }
         } catch (error) {
             console.error('Error creating user:', error);
-            const messages = {
-                'auth/email-already-in-use': 'That email already has an account.',
-                'auth/invalid-email': 'That email address is not valid.',
-                'auth/weak-password': 'Password must be at least 6 characters.',
-                'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase.'
-            };
-            toast.error(messages[error.code] || 'Error creating user account');
+            toast.error(error.message || 'Error creating user account');
         } finally {
             setCreatingUser(false);
         }
     };
 
-    const handleSendPasswordReset = async (e) => {
+    const handleResendConfirmation = async (e) => {
         e.preventDefault();
-        setSendingReset(true);
+        setResending(true);
 
         try {
-            await sendPasswordResetEmail(auth, resetEmail.trim());
-            toast.success('Password reset email sent.');
-            setResetEmail('');
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: resendEmail.trim(),
+            });
+
+            if (error) throw error;
+
+            toast.success('Confirmation email resent!');
+            setResendEmail('');
         } catch (error) {
-            console.error('Error sending reset email:', error);
-            const messages = {
-                'auth/invalid-email': 'That email address is not valid.',
-                'auth/user-not-found': 'No account exists for that email.'
-            };
-            toast.error(messages[error.code] || 'Could not send reset email.');
+            console.error('Error resending confirmation:', error);
+            toast.error(error.message || 'Error resending email');
         } finally {
-            setSendingReset(false);
+            setResending(false);
         }
     };
 
@@ -522,7 +518,7 @@ function Admin() {
                         <div className="admin-login-container" style={{ margin: '0 0', maxWidth: '500px' }}>
                             <div className="admin-login-header">
                                 <h2>Create New User</h2>
-                                <p>Create a new Firebase account for accessing the platform.</p>
+                                <p>Create a new account for accessing the platform.</p>
                             </div>
                             <form onSubmit={handleCreateUser} className="admin-login-form">
                                 <div className="admin-form-group">
@@ -560,21 +556,21 @@ function Admin() {
                             </form>
                         </div>
 
-                        {/* Password Reset Section */}
+                        {/* Resend Confirmation Section */}
                         <div className="admin-login-container" style={{ margin: '2rem 0 0', maxWidth: '500px' }}>
                             <div className="admin-login-header">
-                                <h2>Send Password Reset</h2>
-                                <p>Email a reset link to an existing account.</p>
+                                <h2>Resend Confirmation</h2>
+                                <p>Link expired? Resend confirmation email.</p>
                             </div>
-                            <form onSubmit={handleSendPasswordReset} className="admin-login-form">
+                            <form onSubmit={handleResendConfirmation} className="admin-login-form">
                                 <div className="admin-form-group">
-                                    <label htmlFor="resetEmail">Account Email</label>
+                                    <label htmlFor="resendEmail">Unverified Account Email</label>
                                     <input
                                         type="email"
-                                        id="resetEmail"
-                                        value={resetEmail}
-                                        onChange={(e) => setResetEmail(e.target.value)}
-                                        placeholder="Enter email to send reset link"
+                                        id="resendEmail"
+                                        value={resendEmail}
+                                        onChange={(e) => setResendEmail(e.target.value)}
+                                        placeholder="Enter email to resend link"
                                         autoComplete="off"
                                         required
                                     />
@@ -582,9 +578,10 @@ function Admin() {
                                 <button
                                     type="submit"
                                     className="admin-login-btn"
-                                    disabled={sendingReset}
+                                    disabled={resending}
+                                    style={{ background: 'var(--color-gray)' }}
                                 >
-                                    {sendingReset ? 'Sending...' : 'Send Reset Email'}
+                                    {resending ? 'Sending...' : 'Resend Email'}
                                 </button>
                             </form>
                         </div>

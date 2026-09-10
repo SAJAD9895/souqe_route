@@ -188,15 +188,18 @@ the Leads tab cannot list leads and shows a "read-protected" panel pointing at t
 Lead data is safe from outsiders; it is simply not visible in the app. Read submissions in
 the [Firebase console](https://console.firebase.google.com/project/souqroute/firestore).
 
-The **Create Account** tab uses Firebase Auth directly: `createUserWithEmailAndPassword`
-followed by `sendEmailVerification`, then `signOut` — because creating a user also signs the
-browser in as that new user, and the panel must not be left holding their session. A second
-form sends a password-reset email (`sendPasswordResetEmail`); Firebase has no client API to
-re-send a verification mail to an arbitrary address, so reset replaces the old Supabase
-"resend confirmation" box.
+The **Create Account** tab runs on **Supabase Auth**, not Firebase — this is deliberate and
+was reverted back to Supabase on 2026-09-10 after the Firebase migration had switched it over.
+It calls `supabase.auth.signUp` to create the account, and a second form calls
+`supabase.auth.resend({ type: 'signup' })` to re-send the confirmation email when a link
+expires. The client lives in `src/lib/supabaseClient.js` and reads `VITE_SUPABASE_URL` /
+`VITE_SUPABASE_ANON_KEY` from `.env`.
 
-Accounts created here are only Firebase Auth users — they grant no access to the admin panel,
-which is gated by the hardcoded password above.
+Supabase is used for **auth only** — that client touches no tables. Leads still live in
+Firestore. `src/lib/firebase.js` still exports `auth`, but nothing imports it any more.
+
+Accounts created here are only Supabase Auth users — they grant no access to the admin panel,
+which is gated by the hardcoded password above, and no access to Firestore.
 
 Firebase Auth (Email/Password) **is** enabled on the project and an admin user already
 exists — `info@souqroute.com`, UID `ECcx2ZCx6NSASHdTdKpUx118aY53`, already allowlisted in
@@ -268,6 +271,10 @@ A signed-in non-admin sees a "this account is not an admin" panel instead of the
   only resolve on the home page; from other routes they do nothing.
 - `README.md` is still the stock Vite template.
 - `SUPABASE_SETUP.md`, `SUPABASE_QUERIES.md` and `SUPABASE_ADMIN_SETUP.md` describe the
-  **removed** Supabase backend. They are stale — `firestore.rules` is the source of truth.
+  old Supabase **database** backend, which is gone — `firestore.rules` is the source of truth
+  for lead storage. Supabase now backs only the Create Account tab's auth.
+- The Supabase project `gmgrsuynufoycvnqaltj` referenced in `.env` does not appear in the
+  Supabase account currently connected via MCP. Confirm it still exists and that Email
+  sign-ups are enabled before relying on the Create Account tab.
 - The root `*.md` files are historical status reports written during development. Treat them
   as background, not as current spec — verify against the code.
