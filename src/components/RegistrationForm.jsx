@@ -1,39 +1,100 @@
-import { useState } from 'react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db, LEADS_COLLECTION } from '../lib/firebase';
+import { useEffect, useState } from 'react';
+import { submitLead } from '../lib/leads';
+import { listCategories, MAX_IMAGE_BYTES, parseTagList, uploadProductImage } from '../lib/products';
+import { PUBLIC_SUPABASE_ENV } from '../lib/supabaseClient';
 import './RegistrationForm.css';
 import toast from 'react-hot-toast';
 
+const TOTAL_STEPS = 4;
+
+const EMPTY_FORM = {
+    firstName: '',
+    lastName: '',
+    company: '',
+    businessActivity: '',
+    brands: '',
+    phone: '',
+    mobile: '',
+    email: '',
+    website: '',
+    officeNo: '',
+    buildingName: '',
+    street: '',
+    locality: '',
+    poBox: '',
+    city: '',
+    country: '',
+    message: '',
+    // Step 4 — the optional product, saved to catalog_products.
+    addProduct: false,
+    productName: '',
+    productCategory: '',
+    productDescription: '',
+    productKeywords: ''
+};
+
+const EMPTY_IMAGES = { primary: null, secondary: null };
+
+// Turns a Supabase/Postgres error into something a visitor can act on.
+const describeSubmitError = (error) => {
+    const message = error?.message || '';
+    if (message.startsWith('INVALID_PRODUCT:') || message.startsWith('INVALID_LEAD:')) {
+        return message.split(':').slice(1).join(':').trim();
+    }
+    // 23514 = check_violation: a field failed a length/format constraint.
+    if (error?.code === '23514') {
+        return 'Some details look invalid or too long. Please check your email and fields.';
+    }
+    return null;
+};
+
 function RegistrationForm() {
     const [currentStep, setCurrentStep] = useState(1);
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        company: '',
-        businessActivity: '',
-        brands: '',
-        phone: '',
-        mobile: '',
-        email: '',
-        website: '',
-        officeNo: '',
-        buildingName: '',
-        street: '',
-        locality: '',
-        poBox: '',
-        city: '',
-        country: '',
-        message: ''
-    });
+    const [formData, setFormData] = useState(EMPTY_FORM);
+    const [productImages, setProductImages] = useState(EMPTY_IMAGES);
+    // Bumped on reset so the uncontrolled file inputs are remounted (cleared).
+    const [fileInputKey, setFileInputKey] = useState(0);
+    const [categories, setCategories] = useState([]);
+    const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
     const [submitStatus, setSubmitStatus] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
+        const { name, type, value, checked } = e.target;
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value
+            [name]: type === 'checkbox' ? checked : value
         });
     };
+
+    const handleImageChange = (e) => {
+        const { name, files } = e.target;
+        const file = files?.[0] || null;
+        if (file && !file.type.startsWith('image/')) {
+            toast.error(`"${file.name}" is not an image.`);
+            e.target.value = '';
+            return;
+        }
+        if (file && file.size > MAX_IMAGE_BYTES) {
+            toast.error(`"${file.name}" is larger than 5MB.`);
+            e.target.value = '';
+            return;
+        }
+        setProductImages((prev) => ({ ...prev, [name]: file }));
+    };
+
+    // Load the category dropdown the first time the visitor opts in.
+    useEffect(() => {
+        if (!formData.addProduct || categoriesLoaded) return;
+        setCategoriesLoaded(true);
+        listCategories(PUBLIC_SUPABASE_ENV)
+            .then(setCategories)
+            .catch((error) => {
+                // Not fatal: the product can still be submitted without a category.
+                console.error('Could not load categories:', error);
+            });
+    }, [formData.addProduct, categoriesLoaded]);
 
     const validateStep = (step) => {
         if (step === 1) {
@@ -77,6 +138,13 @@ function RegistrationForm() {
             }
             return true;
         }
+        if (step === 4 && formData.addProduct) {
+            if (!formData.productName.trim()) {
+                toast.error('Product name is required (or untick "Add a product")');
+                return false;
+            }
+            return true;
+        }
         return true;
     };
 
@@ -94,9 +162,17 @@ function RegistrationForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!validateStep(3)) {
+        // Enter in an earlier step's field advances instead of submitting.
+        if (currentStep < TOTAL_STEPS) {
+            nextStep();
             return;
         }
+
+        if (isSubmitting || !validateStep(TOTAL_STEPS)) {
+            return;
+        }
+
+        setIsSubmitting(true);
 
         // Show loading toast
         const loadingToast = toast.loading('Submitting your registration...');
@@ -112,10 +188,28 @@ function RegistrationForm() {
             existingData.push(newLead);
             localStorage.setItem('souqroute_leads', JSON.stringify(existingData));
 
-            // 2. Send to Firestore (collection: `leads`).
-            // Keys are snake_case to match the document shape enforced by
-            // firestore.rules — keep both in sync when adding a field.
-            await addDoc(collection(db, LEADS_COLLECTION), {
+            // 2. Upload the optional product's images, then build its payload.
+            let product = null;
+            if (formData.addProduct) {
+                const [imagePrimaryUrl, imageSecondaryUrl] = await Promise.all([
+                    uploadProductImage(PUBLIC_SUPABASE_ENV, productImages.primary),
+                    uploadProductImage(PUBLIC_SUPABASE_ENV, productImages.secondary)
+                ]);
+                product = {
+                    name: formData.productName.trim(),
+                    description: formData.productDescription.trim(),
+                    category_id: formData.productCategory || null,
+                    image_primary_url: imagePrimaryUrl,
+                    image_secondary_url: imageSecondaryUrl,
+                    search_keywords: parseTagList(formData.productKeywords)
+                };
+            }
+
+            // 3. Send to Supabase. The submit_website_lead RPC inserts the
+            // product (if any) and the website_leads row in one transaction.
+            // Keys are snake_case to match supabase/website_leads.sql — keep
+            // both in sync when adding a field.
+            await submitLead(PUBLIC_SUPABASE_ENV, {
                 first_name: formData.firstName.trim(),
                 last_name: formData.lastName.trim(),
                 company: formData.company.trim(),
@@ -132,10 +226,8 @@ function RegistrationForm() {
                 po_box: formData.poBox.trim(),
                 city: formData.city.trim(),
                 country: formData.country.trim(),
-                message: formData.message.trim(),
-                status: 'new',
-                created_at: serverTimestamp()
-            });
+                message: formData.message.trim()
+            }, product);
 
             // Dismiss loading toast
             toast.dismiss(loadingToast);
@@ -151,25 +243,9 @@ function RegistrationForm() {
             setTimeout(() => {
                 setSubmitStatus('');
                 setCurrentStep(1); // Reset to start
-                setFormData({
-                    firstName: '',
-                    lastName: '',
-                    company: '',
-                    businessActivity: '',
-                    brands: '',
-                    phone: '',
-                    mobile: '',
-                    email: '',
-                    website: '',
-                    officeNo: '',
-                    buildingName: '',
-                    street: '',
-                    locality: '',
-                    poBox: '',
-                    city: '',
-                    country: '',
-                    message: ''
-                });
+                setFormData(EMPTY_FORM);
+                setProductImages(EMPTY_IMAGES);
+                setFileInputKey((key) => key + 1);
             }, 1000);
 
 
@@ -180,11 +256,17 @@ function RegistrationForm() {
             toast.dismiss(loadingToast);
 
             // Show error toast
-            toast.error('Failed to submit. Please try again. (Data saved offline)', {
-                duration: 4000,
-            });
+            const reason = describeSubmitError(error);
+            toast.error(
+                reason
+                    ? `${reason} (Data saved offline)`
+                    : 'Failed to submit. Please try again. (Data saved offline)',
+                { duration: 5000 }
+            );
 
             setSubmitStatus('error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -209,6 +291,11 @@ function RegistrationForm() {
                     <div className="step-number">3</div>
                     <span>Address</span>
                 </div>
+                <div className="step-line"></div>
+                <div className={`step-item ${currentStep >= 4 ? 'active' : ''}`}>
+                    <div className="step-number">4</div>
+                    <span>Product</span>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="registration-form">
@@ -220,29 +307,29 @@ function RegistrationForm() {
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="firstName">First Name *</label>
-                                <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required placeholder="First Name" />
+                                <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} maxLength={100} required placeholder="First Name" />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="lastName">Last Name *</label>
-                                <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required placeholder="Last Name" />
+                                <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} maxLength={100} required placeholder="Last Name" />
                             </div>
                         </div>
 
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="email">Email Address *</label>
-                                <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required placeholder="email@example.com" />
+                                <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} maxLength={254} required placeholder="email@example.com" />
                             </div>
                         </div>
 
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="phone">Phone Number *</label>
-                                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required placeholder="+966..." />
+                                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} maxLength={40} required placeholder="+966..." />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="mobile">Mobile Number</label>
-                                <input type="tel" id="mobile" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+966..." />
+                                <input type="tel" id="mobile" name="mobile" value={formData.mobile} onChange={handleChange} maxLength={40} placeholder="+966..." />
                             </div>
                         </div>
                     </div>
@@ -254,22 +341,22 @@ function RegistrationForm() {
                         <h4 className="form-section-title">Company Details</h4>
                         <div className="form-group">
                             <label htmlFor="company">Company Name *</label>
-                            <input type="text" id="company" name="company" value={formData.company} onChange={handleChange} required placeholder="Company Name" />
+                            <input type="text" id="company" name="company" value={formData.company} onChange={handleChange} maxLength={200} required placeholder="Company Name" />
                         </div>
 
                         <div className="form-group">
                             <label htmlFor="businessActivity">Business Activity *</label>
-                            <input type="text" id="businessActivity" name="businessActivity" value={formData.businessActivity} onChange={handleChange} required placeholder="e.g. Construction, MEP, Trading" />
+                            <input type="text" id="businessActivity" name="businessActivity" value={formData.businessActivity} onChange={handleChange} maxLength={200} required placeholder="e.g. Construction, MEP, Trading" />
                         </div>
 
                         <div className="form-group">
                             <label htmlFor="brands">Brands You Represent</label>
-                            <input type="text" id="brands" name="brands" value={formData.brands} onChange={handleChange} placeholder="e.g. 3M, Bosch (Optional)" />
+                            <input type="text" id="brands" name="brands" value={formData.brands} onChange={handleChange} maxLength={500} placeholder="e.g. 3M, Bosch (Optional)" />
                         </div>
 
                         <div className="form-group">
                             <label htmlFor="website">Website</label>
-                            <input type="url" id="website" name="website" value={formData.website} onChange={handleChange} placeholder="https://..." />
+                            <input type="url" id="website" name="website" value={formData.website} onChange={handleChange} maxLength={300} placeholder="https://..." />
                         </div>
                     </div>
                 )}
@@ -282,47 +369,104 @@ function RegistrationForm() {
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="city">City *</label>
-                                <input type="text" id="city" name="city" value={formData.city} onChange={handleChange} required placeholder="Riyadh" />
+                                <input type="text" id="city" name="city" value={formData.city} onChange={handleChange} maxLength={100} required placeholder="Riyadh" />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="country">Country *</label>
-                                <input type="text" id="country" name="country" value={formData.country} onChange={handleChange} required placeholder="Saudi Arabia" />
+                                <input type="text" id="country" name="country" value={formData.country} onChange={handleChange} maxLength={100} required placeholder="Saudi Arabia" />
                             </div>
                         </div>
 
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="officeNo">Office No</label>
-                                <input type="text" id="officeNo" name="officeNo" value={formData.officeNo} onChange={handleChange} placeholder="Optional" />
+                                <input type="text" id="officeNo" name="officeNo" value={formData.officeNo} onChange={handleChange} maxLength={100} placeholder="Optional" />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="buildingName">Building Name</label>
-                                <input type="text" id="buildingName" name="buildingName" value={formData.buildingName} onChange={handleChange} placeholder="Optional" />
+                                <input type="text" id="buildingName" name="buildingName" value={formData.buildingName} onChange={handleChange} maxLength={200} placeholder="Optional" />
                             </div>
                         </div>
 
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="street">Street</label>
-                                <input type="text" id="street" name="street" value={formData.street} onChange={handleChange} placeholder="Optional" />
+                                <input type="text" id="street" name="street" value={formData.street} onChange={handleChange} maxLength={200} placeholder="Optional" />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="locality">Locality</label>
-                                <input type="text" id="locality" name="locality" value={formData.locality} onChange={handleChange} placeholder="Optional" />
+                                <input type="text" id="locality" name="locality" value={formData.locality} onChange={handleChange} maxLength={200} placeholder="Optional" />
                             </div>
                         </div>
 
                         <div className="form-row-compact">
                             <div className="form-group">
                                 <label htmlFor="poBox">P.O. Box</label>
-                                <input type="text" id="poBox" name="poBox" value={formData.poBox} onChange={handleChange} placeholder="Optional" />
+                                <input type="text" id="poBox" name="poBox" value={formData.poBox} onChange={handleChange} maxLength={50} placeholder="Optional" />
                             </div>
                         </div>
 
                         <div className="form-group">
                             <label htmlFor="message">Note (Optional)</label>
-                            <textarea id="message" name="message" rows="2" value={formData.message} onChange={handleChange} placeholder="Any additional info..."></textarea>
+                            <textarea id="message" name="message" rows="2" value={formData.message} onChange={handleChange} maxLength={2000} placeholder="Any additional info..."></textarea>
                         </div>
+                    </div>
+                )}
+
+                {/* Step 4: Optional Product */}
+                {currentStep === 4 && (
+                    <div className="form-step fade-in">
+                        <h4 className="form-section-title">Product (Optional)</h4>
+
+                        <label className="product-opt-in" htmlFor="addProduct">
+                            <input type="checkbox" id="addProduct" name="addProduct" checked={formData.addProduct} onChange={handleChange} />
+                            <span>I&apos;d like to list a product I supply</span>
+                        </label>
+
+                        {!formData.addProduct && (
+                            <p className="product-opt-in-hint">You can skip this step and complete your registration.</p>
+                        )}
+
+                        {formData.addProduct && (
+                            <>
+                                <div className="form-group">
+                                    <label htmlFor="productName">Product Name *</label>
+                                    <input type="text" id="productName" name="productName" value={formData.productName} onChange={handleChange} maxLength={200} placeholder="e.g. 3-Core Copper Cable 4mm" />
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="productCategory">Category</label>
+                                    <select id="productCategory" name="productCategory" value={formData.productCategory} onChange={handleChange}>
+                                        <option value="">Select a category (optional)</option>
+                                        {categories.map((category) => (
+                                            <option key={category.id} value={category.id}>{category.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="productDescription">Description</label>
+                                    <textarea id="productDescription" name="productDescription" rows="2" value={formData.productDescription} onChange={handleChange} maxLength={2000} placeholder="Specs, sizes, certifications..."></textarea>
+                                </div>
+
+                                <div className="form-group">
+                                    <label htmlFor="productKeywords">Keywords</label>
+                                    <input type="text" id="productKeywords" name="productKeywords" value={formData.productKeywords} onChange={handleChange} maxLength={500} placeholder="cable, copper, 3-core (comma separated)" />
+                                </div>
+
+                                <div className="form-row-compact">
+                                    <div className="form-group">
+                                        <label htmlFor="productImagePrimary">Main Image</label>
+                                        <input key={`primary-${fileInputKey}`} type="file" id="productImagePrimary" name="primary" accept="image/*" onChange={handleImageChange} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="productImageSecondary">Second Image</label>
+                                        <input key={`secondary-${fileInputKey}`} type="file" id="productImageSecondary" name="secondary" accept="image/*" onChange={handleImageChange} />
+                                    </div>
+                                </div>
+                                <p className="product-opt-in-hint">Images up to 5MB each.</p>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -334,7 +478,7 @@ function RegistrationForm() {
                         </button>
                     )}
 
-                    {currentStep < 3 ? (
+                    {currentStep < TOTAL_STEPS ? (
                         <button type="button" className="btn btn-primary" onClick={nextStep} style={{ flex: 1 }}>
                             Continue
                         </button>
@@ -343,6 +487,7 @@ function RegistrationForm() {
                             type="submit"
                             className={`btn btn-primary ${submitStatus}`}
                             style={{ flex: 1 }}
+                            disabled={isSubmitting}
                         >
                             {submitStatus === 'success' ? '✓ Submitted' :
                                 submitStatus === 'error' ? 'Retry' :

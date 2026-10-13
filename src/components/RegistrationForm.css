@@ -168,3 +168,31 @@
         /* Hide labels on very small screens if needed */
     }
 }
+/* Step 4 — optional product */
+.product-opt-in {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--color-black);
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.product-opt-in input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-red);
+}
+
+.registration-form-container .product-opt-in-hint {
+    font-size: 0.85rem;
+    text-align: left;
+    margin: 4px 0 0;
+    opacity: 0.7;
+}
+
+.registration-form .form-group input[type="file"] {
+    padding: 6px;
+    font-size: 0.85rem;
+}

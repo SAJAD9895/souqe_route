@@ -11,8 +11,8 @@ industrial equipment), positioned around Saudi Vision 2030. Production domain:
 
 It is **not** an actual marketplace app: there is no product catalog, no buyer/supplier
 accounts, no RFQ engine. The whole site funnels visitors into one multi-step registration
-form that writes a document to the Firestore `leads` collection, plus a lightweight admin
-panel scaffolded around those leads. Marketing copy describes RFQ/messaging features as future/aspirational.
+form that writes a row to the Supabase `website_leads` table (optionally with one product
+into `catalog_products`), plus a lightweight admin panel around those leads and products. Marketing copy describes RFQ/messaging features as future/aspirational.
 
 ## Stack
 
@@ -20,7 +20,8 @@ panel scaffolded around those leads. Marketing copy describes RFQ/messaging feat
 - `react-router-dom` v7 — client-side routing (BrowserRouter)
 - `react-helmet-async` — per-page SEO meta + JSON-LD
 - `react-hot-toast` — all user feedback (no inline alerts/banners)
-- `firebase` (v12, modular SDK) — Firestore is the only backend
+- `@supabase/supabase-js` — Supabase is the only live backend (leads, products, admin auth).
+  `firebase` is still a dependency but nothing in `src/` uses it (legacy, pending removal)
 - Plain CSS, one `.css` file per component/page. No Tailwind, no CSS-in-JS, no UI library.
 - Deployed to Vercel (`vercel.json` rewrites everything to `/index.html` for SPA routing)
 
@@ -45,13 +46,22 @@ src/
   index.css           brand tokens (:root vars), font import, base typography/buttons
   App.css             a SECOND copy of the tokens + .container, .btn, .section-header
   styles/animations.css  keyframes + .animate-on-scroll / .fade-in-* / .delay-N00 utilities
-  lib/firebase.js     single shared Firebase app + Firestore handle
+  lib/firebase.js     LEGACY Firebase app + Firestore handle — imported by nothing
   hooks/useScrollAnimations.js  IntersectionObserver that adds .animated on scroll
-  components/         Navbar, Footer, ScrollToTop, SEO, RegistrationForm, WelcomeModal
+  components/         Navbar, Footer, ScrollToTop, SEO, RegistrationForm, WelcomeModal,
+                      ProductManager (admin Products tab)
+  lib/supabaseClient.js  two Supabase projects (test/live), getSupabaseClient(env),
+                      getSupabaseAdminClient(env), PUBLIC_SUPABASE_ENV
+  lib/leads.js        website_leads data access (submit RPC, list, status, delete)
+  lib/products.js     product/category/image data access, env-scoped
   pages/              one .jsx + matching .css per route
   data/blogData.js    all 6 blog posts, hardcoded (HTML strings)
 public/               images, favicons, robots.txt, sitemap.xml, manifest.json
-firestore.rules       Firestore security rules (deployed; source of truth)
+supabase/product_catalog.sql  product tables + storage bucket; RUN MANUALLY per project
+supabase/website_leads.sql    leads table, admin allowlist, submit RPC; RUN MANUALLY per
+                      project, AFTER product_catalog.sql
+scripts/migrate-leads-to-supabase.mjs  one-off import of old leads (service-role key)
+firestore.rules       LEGACY Firestore rules for the old `leads` collection
 firebase.json         Firebase CLI config
 .firebaserc           pins the default project to `souqroute`
 old_static_site/      the pre-React HTML site — dead code, do not edit
@@ -72,7 +82,7 @@ old_static_site/      the pre-React HTML site — dead code, do not edit
 | `/supplier-in-saudi-arabia` | `SuppliersSaudiArabia` | SEO landing page |
 | `/supplies-companies-saudi-arabia` | `SuppliesCompaniesSaudi` | SEO landing page |
 | `/wholesaler-supplier-saudi-arabia` | `WholesalerSupplierSaudi` | SEO landing page |
-| `/souquerootadmin` | `Admin` | lead dashboard (note the deliberate misspelling) |
+| `/souquerootadmin` | `Admin` | Dashboard / Leads / Products / Create Account (note the deliberate misspelling) |
 
 There is **no 404 route** — unmatched paths render only Navbar + Footer.
 
@@ -120,137 +130,125 @@ and fall back to the static `index.html` head — worth using `<SEO />` if you t
 `public/sitemap.xml` is hand-maintained; keep it in sync when routes or blog posts change.
 Note the site is a client-rendered SPA, so meta tags are only present after JS runs.
 
-## Firebase / Firestore
+## Leads (Supabase `website_leads`)
 
-Project **`souqroute`** (number `947834668542`), web app `SouqRoute Web`. Config lives in
-`.env` as `VITE_FIREBASE_*` vars and is assembled in `src/lib/firebase.js`, which exports
-`db` and `LEADS_COLLECTION`. Firebase web config is public by design — security is enforced
-entirely by `firestore.rules`, not by hiding these values.
+Leads moved from Firestore to Supabase on 2026-10-13. Schema, RLS and the submit RPC are in
+**`supabase/website_leads.sql`** — run it manually per project, after `product_catalog.sql`.
 
-One collection is used: **`leads`**.
+**The table is `website_leads`, not `leads`.** The `souqroute_panel` superadmin app shares
+both Supabase projects and already owns `public.leads` (marketplace leads, different shape)
+and `legacy_website_leads` (the pre-Firestore table). Never touch those.
 
-### Document shape
+### Which project the form writes to
+
+`PUBLIC_SUPABASE_ENV` in `supabaseClient.js`: **live** in production builds, **test** under
+`npm run dev`, overridable with `VITE_LEADS_SUPABASE_ENV`. The admin panel instead follows its
+header Database picker.
+
+### Row shape
 
 Required: `first_name`, `last_name`, `company`, `business_activity`, `phone`, `email`,
 `city`, `country`. Optional: `brands_represented`, `mobile_number`, `website`, `office_no`,
-`building_name`, `street`, `locality`, `po_box`, `message`. Server-controlled: `status`
-(must be `'new'` on create) and `created_at` (must be `serverTimestamp()`).
+`building_name`, `street`, `locality`, `po_box`, `message`, `product_id` (→ `catalog_products`).
+Server-controlled: `status` (default `'new'`, one of new/contacted/qualified/converted/rejected),
+`created_at`, `updated_at`. `legacy_ref` is set only on imported rows.
 
-Field names are **snake_case** in Firestore while the form state is camelCase — the mapping
-is explicit in `RegistrationForm.jsx`. Adding a field means updating three places: the form
-state, that mapping, and the `hasAll`/`hasOnly` lists in `firestore.rules`. A field missing
-from `firestore.rules` will make the whole write fail with `permission-denied`.
+Columns are **snake_case** while form state is camelCase — the mapping is explicit in
+`RegistrationForm.jsx`. CHECK constraints carry the length caps and email pattern (copied from
+the old `firestore.rules`); the form's `maxLength` attributes mirror them. Adding a field means
+updating: form state, the mapping, the table, and the `submit_website_lead` function.
+
+### Access model
+
+- **anon** has no table privileges at all. The public form calls the
+  **`submit_website_lead(p_lead, p_product)`** RPC (`security definer`), which inserts the
+  optional `catalog_products` row and the lead **in one transaction** and ignores any
+  client-supplied `status`/`created_at`. Product images must already be uploaded to the
+  `product_images` bucket; the RPC rejects other URLs.
+- **authenticated** users can SELECT / DELETE, and UPDATE **only the `status` column**, and
+  only if `is_website_admin()` — i.e. their uid is in **`website_admins`**. Sign-ups are open
+  on both projects, so a session alone is never enough.
+
+### Optional product (registration step 4)
+
+Step 4 of the form is "Product (optional)". If the visitor ticks the opt-in, they give a name
+(required), category (from `catalog_categories`), description, keywords and up to two images.
+Images upload via `uploadProductImage` first, then the RPC creates the product and links it
+via `website_leads.product_id`. The Leads table in the admin shows it in a Product column.
+
+### Auth & the admin panel
+
+`/souquerootadmin` signs in with **Supabase email/password** against the project chosen in
+the Database picker (on the login screen and in the header). `getSupabaseAdminClient(env)` is
+a separate, session-persisting client per env (`storageKey: souqroute-admin-<env>`), so the
+admin can be signed in to test and live independently, and the session-less
+`getSupabaseClient(env)` used for Create Account's `signUp` can never replace it. The old
+hardcoded `Admin` / `Admin!123` gate and the `souqroute_admin_auth` flag are gone.
+
+The **whole panel** is gated on `is_website_admin()`: a non-allowlisted account is signed
+straight back out at login, and a restored non-admin session sees a "Not an admin" screen.
+
+Granting admin access, per project: create the user (Authentication → Users → Add user,
+auto-confirm), then
+`INSERT INTO website_admins (user_id, email) SELECT id, email FROM auth.users WHERE email = '…';`
 
 ### Migrated data
 
-38 leads were imported from the old Supabase table on 2026-09-02. They use document IDs of
-the form `legacy-<old supabase id>` (e.g. `legacy-9`); new form submissions get Firestore
-auto-IDs. All string values were trimmed on the way in, and the Supabase-only `id`, `role`
-and `category` columns were dropped (`role`/`category` were null for every row).
+`scripts/migrate-leads-to-supabase.mjs` imports the 38 original leads from the gitignored
+`leads-backup.json` with their **real** submission dates (`legacy_ref = 'supabase-v1:<id>'`),
+plus — with `--firestore <service-account.json>` and a temporary `npm i --no-save
+firebase-admin` — every non-`legacy-*` Firestore doc (`'firestore:<docId>'`). Upserts on
+`legacy_ref`, so it is safe to re-run; `--dry-run` prints counts; `--env` defaults to live.
+Needs `SUPABASE_SERVICE_ROLE_KEY` on the command line — never in `.env`, never `VITE_`.
 
-Caveat: the rules require `created_at == request.time`, so every migrated lead has a
-`created_at` of the import date rather than its true submission date (which ranged from
-2026-01-26 to 2026-08-31). The original export, with real timestamps, is kept in the
-gitignored `leads-backup.json`. Restoring the true dates needs a write that bypasses rules —
-i.e. the Admin SDK with a service-account key.
+### Legacy Firebase
 
-### Security rules
+Firestore project `souqroute` still holds the old `leads` collection. Nothing in `src/` reads
+or writes it. Once the import is verified: set `allow create: if false` in `firestore.rules`
+and deploy (`firebase deploy --only firestore:rules --project souqroute`), then delete
+`src/lib/firebase.js` and `npm uninstall firebase`.
 
-`firestore.rules` is deliberately **create-only from the browser**:
+## Products
 
-- `allow create` — anyone can submit the public registration form, but the payload is
-  validated (required fields, string types, length caps, email regex, `status == 'new'`,
-  `created_at == request.time`).
-- `allow read` / `allow delete` — admins only (see `isAdmin()` UID allowlist).
-- `allow update` — admins only, and narrowed further: the diff may touch **only** `status`,
-  and only to one of the five pipeline values. So an admin can move a lead through the
-  pipeline but cannot rewrite a lead's name, email or phone.
-- Everything outside `/leads` is closed.
+The **Products** tab (`src/components/ProductManager.jsx`) adds and manages a product catalog
+in Supabase. Data access is in `src/lib/products.js`; every function takes the env id as its
+first argument, so no call can be ambiguous about which project it writes to.
 
-Read leads in the [Firebase console](https://console.firebase.google.com/project/souqroute/firestore),
-or from a trusted server with the Admin SDK (which bypasses rules).
+Schema is **`supabase/product_catalog.sql`** — it is NOT applied automatically. Run it once
+per Supabase project (SQL Editor → paste → Run) or every call fails with "relation does not
+exist"; `ProductManager` detects that error and says which file to run.
 
-Deploy rule changes with:
+| Table | Purpose |
+|---|---|
+| `catalog_categories` | dropdown source; the tab's "+ Add" button inserts here |
+| `catalog_products` | name, description, `category_id`, two image URLs, `search_keywords[]`, `hashtags[]` |
 
-```bash
-firebase deploy --only firestore:rules --project souqroute
-```
+**The `catalog_` prefix is load-bearing.** Both Supabase projects already host the superadmin
+panel's supplier catalog in `products` / `master_products` (`company_id`, `master_product_id`,
+`product_description`), and that app reads and writes those tables in several components.
+This catalog must never rename, drop or alter them. Queries embed the category with an
+explicit alias — `.select('*, category:catalog_categories(id, name)')` — so the JS-side key
+is `product.category`, independent of the table name.
 
-### Auth & the admin panel
+Storage bucket **`product_images`** (public read) holds both uploads; the form caps files at
+5MB and deleting a product best-effort removes its images.
 
-`/souquerootadmin` uses a **hardcoded client-side gate** (`Admin` / `Admin!123`) with a
-`localStorage['souqroute_admin_auth']` flag — deliberate, chosen over Firebase Auth for now.
-It is presentation only: the check runs in the browser, is readable in the JS bundle, and
-gives the page no database identity.
+Search works off a `search_text` column that a **BEFORE INSERT OR UPDATE trigger** keeps in
+sync — a lowercase blob of name + description + keywords + hashtags. One `ilike` therefore
+matches partially across all four. Never write `search_text` from the client; the trigger
+owns it. Adding a searchable field means updating `catalog_products_build_search_text()`.
 
-Consequence: because `isAdmin()` in `firestore.rules` gates reads on a Firebase Auth UID,
-the Leads tab cannot list leads and shows a "read-protected" panel pointing at the console.
-Lead data is safe from outsiders; it is simply not visible in the app. Read submissions in
-the [Firebase console](https://console.firebase.google.com/project/souqroute/firestore).
+Hashtags are stored **without** the leading `#` (`parseHashtagList` strips it) so a search for
+`electrical` matches `#electrical`.
 
-The **Create Account** tab runs on **Supabase Auth**, not Firebase — this is deliberate and
-was reverted back to Supabase on 2026-09-10 after the Firebase migration had switched it over.
-It calls `supabase.auth.signUp` to create the account, and a second form calls
-`supabase.auth.resend({ type: 'signup' })` to re-send the confirmation email when a link
-expires. The client lives in `src/lib/supabaseClient.js` and reads `VITE_SUPABASE_URL` /
-`VITE_SUPABASE_ANON_KEY` from `.env`.
+`ProductManager.describeError` maps PostgREST error **codes** (not message text) to specific
+fixes: `PGRST205`/`42P01` means the tables were never created, `PGRST200` means the two tables
+aren't linked, `42703` means they exist with the wrong shape, `42501` means RLS refused the
+write. Matching on codes keeps "table missing" and "relationship missing" from collapsing into
+one misleading message.
 
-Supabase is used for **auth only** — that client touches no tables. Leads still live in
-Firestore. `src/lib/firebase.js` still exports `auth`, but nothing imports it any more.
-
-Accounts created here are only Supabase Auth users — they grant no access to the admin panel,
-which is gated by the hardcoded password above, and no access to Firestore.
-
-Firebase Auth (Email/Password) **is** enabled on the project and an admin user already
-exists — `info@souqroute.com`, UID `ECcx2ZCx6NSASHdTdKpUx118aY53`, already allowlisted in
-`isAdmin()`. `src/lib/firebase.js` still exports `auth`. So switching the panel over later
-means only rewriting `handleLogin` to use `signInWithEmailAndPassword`; the rules and the
-account need no changes.
-
-Note if you ever swap in Firebase Auth: sign-up is open to anyone holding the public API
-key, so `request.auth != null` is NOT a sufficient rule — keep the UID allowlist.
-
-### Security rules
-
-`firestore.rules` is deliberately **create-only from the browser**:
-
-- `allow create` — anyone can submit the public registration form, but the payload is
-  validated (required fields, string types, length caps, email regex, `status == 'new'`,
-  `created_at == request.time`).
-- `allow read` / `allow delete` — admins only (see `isAdmin()` UID allowlist).
-- `allow update` — admins only, and narrowed further: the diff may touch **only** `status`,
-  and only to one of the five pipeline values. So an admin can move a lead through the
-  pipeline but cannot rewrite a lead's name, email or phone.
-- Everything outside `/leads` is closed.
-
-Read leads in the [Firebase console](https://console.firebase.google.com/project/souqroute/firestore),
-or from a trusted server with the Admin SDK (which bypasses rules).
-
-Deploy rule changes with:
-
-```bash
-firebase deploy --only firestore:rules --project souqroute
-```
-
-### Auth & the admin panel
-
-Firebase Auth (Email/Password) backs `/souquerootadmin`. `Admin.jsx` uses
-`signInWithEmailAndPassword`, `onAuthStateChanged` (Firebase persists the session itself —
-there is no localStorage flag any more) and `signOut`. The old hardcoded
-`Admin` / `Admin!123` gate is gone.
-
-**Email/Password sign-up is open to anyone holding the public API key**, so
-`request.auth != null` is NOT a sufficient rule — a stranger could register and read every
-lead. Access is gated on an explicit UID allowlist in the `isAdmin()` function in
-`firestore.rules`. Granting someone admin access means adding their UID there and
-redeploying; creating the Auth user alone does nothing.
-
-Current admin: `info@souqroute.com` (`ECcx2ZCx6NSASHdTdKpUx118aY53`).
-
-A signed-in non-admin sees a "this account is not an admin" panel instead of the table.
-
-`RegistrationForm.jsx` still writes a backup copy of every submission to
-`localStorage['souqroute_leads']` before the Firestore write.
+Accounts created in the Create Account tab are plain Supabase Auth users — they get no
+access to the admin panel unless they are also added to `website_admins`.
 
 ## Known issues — be aware before "fixing"
 
@@ -259,10 +257,9 @@ A signed-in non-admin sees a "this account is not an admin" panel instead of the
   **Supabase URL + anon key remain in git history** — that Supabase project should be
   deleted or its keys rotated.
 - `/souquerootadmin` is not covered by the `Disallow: /admin` rule in `robots.txt`.
-- Anyone can create a Firebase Auth account against the public API key. That is harmless
-  while `isAdmin()` gates every read, but it does mean the Auth user list may accumulate
-  junk accounts. Restrict sign-ups in the Identity Platform settings if that becomes a
-  problem.
+- Sign-ups are open on both Supabase projects (the Create Account tab relies on it). That is
+  harmless while `website_admins` gates the panel and every lead read, but the Auth user list
+  may accumulate junk accounts.
 - `BlogDetail` renders post content with `dangerouslySetInnerHTML`. Safe today because posts
   are hardcoded in `blogData.js`; it stops being safe if content ever becomes user-supplied.
 - `WelcomeModal` fires on every home-page visit (by design, per its comment) and scrolls to
@@ -271,10 +268,21 @@ A signed-in non-admin sees a "this account is not an admin" panel instead of the
   only resolve on the home page; from other routes they do nothing.
 - `README.md` is still the stock Vite template.
 - `SUPABASE_SETUP.md`, `SUPABASE_QUERIES.md` and `SUPABASE_ADMIN_SETUP.md` describe the
-  old Supabase **database** backend, which is gone — `firestore.rules` is the source of truth
-  for lead storage. Supabase now backs only the Create Account tab's auth.
-- The Supabase project `gmgrsuynufoycvnqaltj` referenced in `.env` does not appear in the
-  Supabase account currently connected via MCP. Confirm it still exists and that Email
-  sign-ups are enabled before relying on the Create Account tab.
+  original (pre-Firestore) Supabase `leads` table, which no longer exists under that name —
+  `supabase/website_leads.sql` is the source of truth for lead storage now.
+- Neither Supabase project (`gmgrsuynufoycvnqaltj`, `akwycltnkqcrwezqldbt`) appears in the
+  Supabase account connected via MCP — they live under a different login. Both were verified
+  reachable over the auth REST API on 2026-09-10, so this is an access-visibility gap, not a
+  missing project.
+- Both Supabase anon keys are committed in `.env` and are in git history. Same reasoning as
+  the Firebase config (anon keys are public by design and ship in the bundle), but the
+  **live** project's key is now in the client bundle too — its row-level security is the only
+  thing protecting production data.
+- **The product tables and the `product_images` bucket are still writable by `anon`.** This
+  was a deliberate call (2026-09-10) when the panel had no database identity. The panel now
+  has a real Supabase login, so this can be tightened: point `ProductManager` / `products.js`
+  at `getSupabaseAdminClient` and change the catalog policies to `TO authenticated USING
+  (is_website_admin())`. Keep the bucket's INSERT open to anon (or move uploads behind the
+  RPC) — the public registration form uploads product images anonymously.
 - The root `*.md` files are historical status reports written during development. Treat them
   as background, not as current spec — verify against the code.

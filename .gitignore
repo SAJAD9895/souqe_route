@@ -30,3 +30,8 @@ firestore-debug.log
 
 # Migrated lead export (contains personal data - never commit)
 leads-backup.json
+
+# Lead migration secrets — never commit
+.env.migrate
+firebase-service-account.json
+*-firebase-adminsdk-*.json

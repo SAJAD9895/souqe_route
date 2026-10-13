@@ -1,124 +1,215 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    orderBy,
-    query,
-    updateDoc
-} from 'firebase/firestore';
-import { db, LEADS_COLLECTION } from '../lib/firebase';
-import { supabase } from '../lib/supabaseClient';
+    LEAD_STATUSES,
+    deleteLead,
+    isWebsiteAdmin,
+    listLeads,
+    updateLeadStatus as updateLeadStatusInDb
+} from '../lib/leads';
+import {
+    DEFAULT_SUPABASE_ENV,
+    SUPABASE_ENVS,
+    getSupabaseAdminClient,
+    getSupabaseClient,
+    getSupabaseEnv,
+    getSupabaseProjectRef
+} from '../lib/supabaseClient';
+import ProductManager from '../components/ProductManager';
 import toast from 'react-hot-toast';
 import './Admin.css';
 
+const EMPTY_STATS = {
+    total: 0,
+    new: 0,
+    contacted: 0,
+    qualified: 0,
+    converted: 0,
+    rejected: 0
+};
+
+const computeStats = (rows) => ({
+    total: rows.length,
+    new: rows.filter(l => l.status === 'new').length,
+    contacted: rows.filter(l => l.status === 'contacted').length,
+    qualified: rows.filter(l => l.status === 'qualified').length,
+    converted: rows.filter(l => l.status === 'converted').length,
+    rejected: rows.filter(l => l.status === 'rejected').length
+});
+
 function Admin() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [username, setUsername] = useState('');
+    // Supabase Auth session for the selected project. Each project has its own
+    // accounts, so the session is per env: switching the Database picker to a
+    // project you are not signed in to shows the login screen for it.
+    const [session, setSession] = useState(null);
+    const [authReady, setAuthReady] = useState(false);
+    // 'checking' | 'admin' | 'denied' — whether the signed-in user is listed
+    // in website_admins. Sign-ups are open, so a session alone proves nothing.
+    const [adminStatus, setAdminStatus] = useState('checking');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loginError, setLoginError] = useState('');
+    const [signingIn, setSigningIn] = useState(false);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [stats, setStats] = useState({
-        total: 0,
-        new: 0,
-        contacted: 0,
-        qualified: 0,
-        converted: 0,
-        rejected: 0
-    });
-    const [permissionDenied, setPermissionDenied] = useState(false);
+    const [stats, setStats] = useState(EMPTY_STATS);
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
     const [creatingUser, setCreatingUser] = useState(false);
     const [resendEmail, setResendEmail] = useState('');
     const [resending, setResending] = useState(false);
+    // Which Supabase project the whole panel reads, writes and signs in to.
+    // Chosen in the header, remembered across reloads, and defaulted to test so
+    // a mis-click never lands in the live database.
+    const [supabaseEnv, setSupabaseEnv] = useState(() => {
+        const saved = localStorage.getItem('souqroute_supabase_env');
+        return SUPABASE_ENVS.some((env) => env.id === saved) ? saved : DEFAULT_SUPABASE_ENV;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('souqroute_supabase_env', supabaseEnv);
+    }, [supabaseEnv]);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [leadToDelete, setLeadToDelete] = useState(null);
 
-    // Check if already logged in
+    // Restore / track the session for the selected project. Supabase persists
+    // it in localStorage under a per-env key (see getSupabaseAdminClient).
     useEffect(() => {
-        const savedAuth = localStorage.getItem('souqroute_admin_auth');
-        if (savedAuth === 'true') {
-            setIsAuthenticated(true);
-        }
-    }, []);
-
-    // Fetch leads when authenticated
-    useEffect(() => {
-        if (isAuthenticated && activeTab === 'leads') {
-            fetchLeads();
-        }
-    }, [isAuthenticated, activeTab]);
-
-    const handleLogin = (e) => {
-        e.preventDefault();
-        setLoginError('');
-
-        if (username === 'Admin' && password === 'Admin!123') {
-            setIsAuthenticated(true);
-            localStorage.setItem('souqroute_admin_auth', 'true');
-            toast.success('Welcome back, Admin! 👋');
-        } else {
-            setLoginError('Invalid credentials. Please try again.');
-            toast.error('Invalid credentials');
-        }
-    };
-
-    const handleLogout = () => {
-        setIsAuthenticated(false);
-        localStorage.removeItem('souqroute_admin_auth');
-        setUsername('');
-        setPassword('');
-        setActiveTab('dashboard');
-        setLeads([]);
-        toast.success('Logged out successfully');
-    };
-
-    const computeStats = (rows) => ({
-        total: rows.length,
-        new: rows.filter(l => l.status === 'new').length,
-        contacted: rows.filter(l => l.status === 'contacted').length,
-        qualified: rows.filter(l => l.status === 'qualified').length,
-        converted: rows.filter(l => l.status === 'converted').length,
-        rejected: rows.filter(l => l.status === 'rejected').length
-    });
-
-    const fetchLeads = async () => {
-        setLoading(true);
-        setPermissionDenied(false);
+        let client;
         try {
-            const snapshot = await getDocs(
-                query(collection(db, LEADS_COLLECTION), orderBy('created_at', 'desc'))
-            );
-            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            client = getSupabaseAdminClient(supabaseEnv);
+        } catch (error) {
+            console.error(error);
+            setSession(null);
+            setAuthReady(true);
+            return undefined;
+        }
 
-            if (data.length === 0) {
-                toast('No leads found yet.', { icon: 'ℹ️' });
-            } else {
-                toast.success(`Loaded ${data.length} leads`);
+        let cancelled = false;
+        setAuthReady(false);
+        setLeads([]);
+        setStats(EMPTY_STATS);
+
+        client.auth.getSession().then(({ data }) => {
+            if (cancelled) return;
+            setSession(data.session);
+            setAuthReady(true);
+        });
+
+        const { data: { subscription } } = client.auth.onAuthStateChange((_event, nextSession) => {
+            if (!cancelled) setSession(nextSession);
+        });
+
+        return () => {
+            cancelled = true;
+            subscription.unsubscribe();
+        };
+    }, [supabaseEnv]);
+
+    const userId = session?.user?.id;
+
+    // Check the allowlist whenever the signed-in user (or project) changes.
+    useEffect(() => {
+        if (!userId) {
+            setAdminStatus('checking');
+            return undefined;
+        }
+
+        let cancelled = false;
+        setAdminStatus('checking');
+        isWebsiteAdmin(supabaseEnv)
+            .then((ok) => { if (!cancelled) setAdminStatus(ok ? 'admin' : 'denied'); })
+            .catch((error) => {
+                console.error('Admin check failed:', error);
+                if (!cancelled) setAdminStatus('denied');
+            });
+
+        return () => { cancelled = true; };
+    }, [userId, supabaseEnv]);
+
+    const isAdmin = adminStatus === 'admin';
+
+    const fetchLeads = useCallback(async ({ quiet = false } = {}) => {
+        setLoading(true);
+        try {
+            const data = await listLeads(supabaseEnv);
+
+            if (!quiet) {
+                if (data.length === 0) {
+                    toast('No leads found yet.', { icon: 'ℹ️' });
+                } else {
+                    toast.success(`Loaded ${data.length} leads`);
+                }
             }
 
             setLeads(data);
             setStats(computeStats(data));
         } catch (error) {
             console.error('Error fetching leads:', error);
-            if (error.code === 'permission-denied') {
-                setPermissionDenied(true);
-                toast.error('Reading leads is blocked by Firestore security rules.', { duration: 6000 });
+            // PGRST205 / 42P01 = table missing: website_leads.sql was never run.
+            if (error.code === 'PGRST205' || error.code === '42P01') {
+                toast.error('The website_leads table does not exist in this project. Run supabase/website_leads.sql.', { duration: 8000 });
             } else {
                 toast.error(`Error loading leads: ${error.message}`);
             }
         } finally {
             setLoading(false);
         }
+    }, [supabaseEnv]);
+
+    // Leads feed both the Dashboard stats and the Leads table.
+    useEffect(() => {
+        if (!isAdmin) return;
+        if (activeTab === 'leads') fetchLeads();
+        else if (activeTab === 'dashboard') fetchLeads({ quiet: true });
+    }, [isAdmin, activeTab, fetchLeads]);
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoginError('');
+        setSigningIn(true);
+
+        try {
+            const client = getSupabaseAdminClient(supabaseEnv);
+            const { data, error } = await client.auth.signInWithPassword({
+                email: email.trim(),
+                password
+            });
+            if (error) throw error;
+
+            // Refuse accounts that aren't on the allowlist up front, rather than
+            // leaving them signed in to an empty panel.
+            const ok = await isWebsiteAdmin(supabaseEnv);
+            if (!ok) {
+                await client.auth.signOut();
+                setLoginError(`${data.user.email} is not an admin in ${getSupabaseEnv(supabaseEnv).label}.`);
+                toast.error('This account is not an admin');
+                return;
+            }
+
+            setPassword('');
+            toast.success('Welcome back, Admin! 👋');
+        } catch (error) {
+            console.error('Sign-in failed:', error);
+            setLoginError(error.message || 'Invalid credentials. Please try again.');
+            toast.error('Invalid credentials');
+        } finally {
+            setSigningIn(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        await getSupabaseAdminClient(supabaseEnv).auth.signOut();
+        setPassword('');
+        setActiveTab('dashboard');
+        setLeads([]);
+        setStats(EMPTY_STATS);
+        toast.success('Logged out successfully');
     };
 
     const updateLeadStatus = async (leadId, newStatus) => {
         try {
-            await updateDoc(doc(db, LEADS_COLLECTION, leadId), { status: newStatus });
+            await updateLeadStatusInDb(supabaseEnv, leadId, newStatus);
 
             const updatedLeads = leads.map(lead =>
                 lead.id === leadId ? { ...lead, status: newStatus } : lead
@@ -129,11 +220,7 @@ function Admin() {
             toast.success(`Status updated to ${newStatus}`);
         } catch (error) {
             console.error('Error updating lead status:', error);
-            toast.error(
-                error.code === 'permission-denied'
-                    ? 'Update blocked by Firestore security rules.'
-                    : 'Error updating status. Please try again.'
-            );
+            toast.error(error.message || 'Error updating status. Please try again.');
         }
     };
 
@@ -142,14 +229,15 @@ function Admin() {
         setCreatingUser(true);
 
         try {
-            const { data, error } = await supabase.auth.signUp({
+            const target = getSupabaseEnv(supabaseEnv);
+            const { data, error } = await getSupabaseClient(supabaseEnv).auth.signUp({
                 email: newUserEmail.trim(),
                 password: newUserPassword,
             });
 
             if (error) throw error;
 
-            toast.success('User account created successfully!');
+            toast.success(`Account created in ${target.label}!`);
             setNewUserEmail('');
             setNewUserPassword('');
 
@@ -172,14 +260,15 @@ function Admin() {
         setResending(true);
 
         try {
-            const { error } = await supabase.auth.resend({
+            const target = getSupabaseEnv(supabaseEnv);
+            const { error } = await getSupabaseClient(supabaseEnv).auth.resend({
                 type: 'signup',
                 email: resendEmail.trim(),
             });
 
             if (error) throw error;
 
-            toast.success('Confirmation email resent!');
+            toast.success(`Confirmation email resent from ${target.label}!`);
             setResendEmail('');
         } catch (error) {
             console.error('Error resending confirmation:', error);
@@ -191,8 +280,7 @@ function Admin() {
 
     const formatDate = (value) => {
         if (!value) return '-';
-        // Firestore Timestamp -> Date; also tolerates ISO strings from old data.
-        const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
+        const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '-';
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -217,7 +305,7 @@ function Admin() {
         if (!leadToDelete) return;
 
         try {
-            await deleteDoc(doc(db, LEADS_COLLECTION, leadToDelete.id));
+            await deleteLead(supabaseEnv, leadToDelete.id);
 
             const updatedLeads = leads.filter(lead => lead.id !== leadToDelete.id);
             setLeads(updatedLeads);
@@ -228,11 +316,7 @@ function Admin() {
             setLeadToDelete(null);
         } catch (error) {
             console.error('Error deleting lead:', error);
-            toast.error(
-                error.code === 'permission-denied'
-                    ? 'Delete blocked by Firestore security rules.'
-                    : `Error deleting lead: ${error.message}`
-            );
+            toast.error(`Error deleting lead: ${error.message}`);
         }
     };
 
@@ -247,8 +331,59 @@ function Admin() {
         return colors[status] || '#ADADAD';
     };
 
+    const envPicker = (
+        <div className={`admin-env-switch ${supabaseEnv === 'live' ? 'is-live' : ''}`}>
+            <label htmlFor="supabaseEnv">Database</label>
+            <select
+                id="supabaseEnv"
+                value={supabaseEnv}
+                onChange={(e) => setSupabaseEnv(e.target.value)}
+            >
+                {SUPABASE_ENVS.map((env) => (
+                    <option key={env.id} value={env.id}>
+                        {env.label}
+                    </option>
+                ))}
+            </select>
+            <code>{getSupabaseProjectRef(supabaseEnv)}</code>
+        </div>
+    );
+
+    if (!authReady || (session && adminStatus === 'checking')) {
+        return (
+            <div className="admin-login-page">
+                <div className="admin-loading">Checking session...</div>
+            </div>
+        );
+    }
+
+    // Signed in, but not on the website_admins allowlist for this project.
+    if (session && adminStatus === 'denied') {
+        return (
+            <div className="admin-login-page">
+                <div className="admin-login-container">
+                    <div className="admin-login-header">
+                        <img src="/images/logo-black.png" alt="Souq Route" className="admin-login-logo" />
+                        <h1>Not an admin</h1>
+                        <p>
+                            <strong>{session.user.email}</strong> is signed in to{' '}
+                            {getSupabaseEnv(supabaseEnv).label}, but is not listed in{' '}
+                            <code>website_admins</code> for that project.
+                        </p>
+                    </div>
+                    <div className="admin-login-form">
+                        {envPicker}
+                        <button type="button" className="admin-login-btn" onClick={handleLogout}>
+                            Sign out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     // Login Screen
-    if (!isAuthenticated) {
+    if (!session) {
         return (
             <div className="admin-login-page">
                 <div className="admin-login-container">
@@ -263,14 +398,15 @@ function Admin() {
                                 {loginError}
                             </div>
                         )}
+                        {envPicker}
                         <div className="admin-form-group">
-                            <label htmlFor="username">Username</label>
+                            <label htmlFor="email">Email</label>
                             <input
-                                type="text"
-                                id="username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Enter username"
+                                type="email"
+                                id="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="admin@souqroute.com"
                                 autoComplete="username"
                                 required
                             />
@@ -287,8 +423,8 @@ function Admin() {
                                 required
                             />
                         </div>
-                        <button type="submit" className="admin-login-btn">
-                            Sign In
+                        <button type="submit" className="admin-login-btn" disabled={signingIn}>
+                            {signingIn ? 'Signing in...' : 'Sign In'}
                         </button>
                     </form>
                 </div>
@@ -320,6 +456,13 @@ function Admin() {
                         Leads
                     </button>
                     <button
+                        className={`admin-nav-item ${activeTab === 'products' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('products')}
+                    >
+                        <span className="nav-icon">📦</span>
+                        Products
+                    </button>
+                    <button
                         className={`admin-nav-item ${activeTab === 'create-account' ? 'active' : ''}`}
                         onClick={() => setActiveTab('create-account')}
                     >
@@ -338,13 +481,20 @@ function Admin() {
                     <h1>
                         {activeTab === 'dashboard' && 'Dashboard'}
                         {activeTab === 'leads' && 'Leads Management'}
+                        {activeTab === 'products' && 'Products'}
                         {activeTab === 'create-account' && 'Create Account'}
                     </h1>
-                    {activeTab === 'leads' && (
-                        <button className="admin-refresh-btn" onClick={fetchLeads}>
-                            🔄 Refresh
-                        </button>
-                    )}
+                    <div className="admin-header-actions">
+                        {/* Panel-wide Supabase target. Leads, Products and Create
+                            Account all read this, so there is one place to check
+                            which database you are about to write to. */}
+                        {envPicker}
+                        {activeTab === 'leads' && (
+                            <button className="admin-refresh-btn" onClick={() => fetchLeads()}>
+                                🔄 Refresh
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {activeTab === 'dashboard' && (
@@ -407,26 +557,6 @@ function Admin() {
                     <div className="admin-leads">
                         {loading ? (
                             <div className="admin-loading">Loading leads...</div>
-                        ) : permissionDenied ? (
-                            <div className="admin-empty">
-                                <p><strong>Leads are read-protected.</strong></p>
-                                <p>
-                                    This login is checked in the browser only, so it gives no
-                                    database identity. Firestore rules let the public form submit
-                                    leads but allow reads only for an admin UID listed in
-                                    <code> isAdmin() </code> in <code>firestore.rules</code>.
-                                </p>
-                                <p>
-                                    View submissions in the{' '}
-                                    <a
-                                        href="https://console.firebase.google.com/project/souqroute/firestore/databases/-default-/data/~2Fleads"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        Firebase console
-                                    </a>.
-                                </p>
-                            </div>
                         ) : leads.length === 0 ? (
                             <div className="admin-empty">
                                 <p>No leads found.</p>
@@ -455,6 +585,7 @@ function Admin() {
                                             <th>City</th>
                                             <th>Country</th>
                                             <th>Message</th>
+                                            <th>Product</th>
                                             <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
@@ -482,17 +613,27 @@ function Admin() {
                                                 <td>{lead.country || '-'}</td>
                                                 <td className="message-cell">{lead.message || '-'}</td>
                                                 <td>
+                                                    {lead.product ? (
+                                                        <div className="lead-product">
+                                                            {lead.product.image_primary_url && (
+                                                                <img src={lead.product.image_primary_url} alt="" />
+                                                            )}
+                                                            <span>{lead.product.name}</span>
+                                                        </div>
+                                                    ) : '-'}
+                                                </td>
+                                                <td>
                                                     <select
                                                         className="status-select"
                                                         value={lead.status || 'new'}
                                                         onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
                                                         style={{ borderColor: getStatusColor(lead.status) }}
                                                     >
-                                                        <option value="new">New</option>
-                                                        <option value="contacted">Contacted</option>
-                                                        <option value="qualified">Qualified</option>
-                                                        <option value="converted">Converted</option>
-                                                        <option value="rejected">Rejected</option>
+                                                        {LEAD_STATUSES.map((status) => (
+                                                            <option key={status} value={status}>
+                                                                {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                            </option>
+                                                        ))}
                                                     </select>
                                                 </td>
                                                 <td>
@@ -513,6 +654,12 @@ function Admin() {
                     </div>
                 )}
 
+                {activeTab === 'products' && (
+                    // Remounts on env change so the panel never shows one
+                    // database's products while pointed at the other.
+                    <ProductManager key={supabaseEnv} env={supabaseEnv} />
+                )}
+
                 {activeTab === 'create-account' && (
                     <div className="admin-create-account">
                         <div className="admin-login-container" style={{ margin: '0 0', maxWidth: '500px' }}>
@@ -521,6 +668,13 @@ function Admin() {
                                 <p>Create a new account for accessing the platform.</p>
                             </div>
                             <form onSubmit={handleCreateUser} className="admin-login-form">
+                                <p className={`admin-env-hint ${supabaseEnv === 'live' ? 'is-live' : ''}`}>
+                                    {supabaseEnv === 'live'
+                                        ? 'Live project — this creates a real account.'
+                                        : 'Staging project — safe for test accounts.'}
+                                    {' '}Target: <code>{getSupabaseProjectRef(supabaseEnv)}</code>
+                                    {' '}— change it with the Database picker above.
+                                </p>
                                 <div className="admin-form-group">
                                     <label htmlFor="newUserEmail">Email Address</label>
                                     <input
@@ -560,7 +714,11 @@ function Admin() {
                         <div className="admin-login-container" style={{ margin: '2rem 0 0', maxWidth: '500px' }}>
                             <div className="admin-login-header">
                                 <h2>Resend Confirmation</h2>
-                                <p>Link expired? Resend confirmation email.</p>
+                                <p>
+                                    Link expired? Resend confirmation email. Uses the
+                                    environment selected above — currently{' '}
+                                    <strong>{getSupabaseEnv(supabaseEnv).label}</strong>.
+                                </p>
                             </div>
                             <form onSubmit={handleResendConfirmation} className="admin-login-form">
                                 <div className="admin-form-group">
