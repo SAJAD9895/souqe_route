@@ -613,7 +613,13 @@ function Admin() {
                                                 <td>{lead.country || '-'}</td>
                                                 <td className="message-cell">{lead.message || '-'}</td>
                                                 <td>
-                                                    {lead.product ? (
+                                                    {lead.panel_product_id ? (
+                                                        // Lives in souqroute_panel's products table; its
+                                                        // RLS hides the row unless you're a panel master.
+                                                        <span title="Pending review in the souqroute panel's Moderation queue">
+                                                            {lead.panel_product?.name || 'Sent to panel'}
+                                                        </span>
+                                                    ) : lead.product ? (
                                                         <div className="lead-product">
                                                             {lead.product.image_primary_url && (
                                                                 <img src={lead.product.image_primary_url} alt="" />

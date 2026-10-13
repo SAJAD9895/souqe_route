@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { submitLead } from '../lib/leads';
-import { listCategories, MAX_IMAGE_BYTES, parseTagList, uploadProductImage } from '../lib/products';
+import { listProductCategories, submitLead } from '../lib/leads';
+import { MAX_IMAGE_BYTES, parseTagList, uploadProductImage } from '../lib/products';
 import { PUBLIC_SUPABASE_ENV } from '../lib/supabaseClient';
 import './RegistrationForm.css';
 import toast from 'react-hot-toast';
@@ -25,7 +25,8 @@ const EMPTY_FORM = {
     city: '',
     country: '',
     message: '',
-    // Step 4 — the optional product, saved to catalog_products.
+    // Step 4 — the optional product. Becomes a PENDING_REVIEW product in the
+    // souqroute_panel (under a company built from this registration).
     addProduct: false,
     productName: '',
     productCategory: '',
@@ -88,11 +89,11 @@ function RegistrationForm() {
     useEffect(() => {
         if (!formData.addProduct || categoriesLoaded) return;
         setCategoriesLoaded(true);
-        listCategories(PUBLIC_SUPABASE_ENV)
+        listProductCategories(PUBLIC_SUPABASE_ENV)
             .then(setCategories)
             .catch((error) => {
-                // Not fatal: the product can still be submitted without a category.
                 console.error('Could not load categories:', error);
+                toast.error('Could not load product categories. Please try again later.');
             });
     }, [formData.addProduct, categoriesLoaded]);
 
@@ -141,6 +142,10 @@ function RegistrationForm() {
         if (step === 4 && formData.addProduct) {
             if (!formData.productName.trim()) {
                 toast.error('Product name is required (or untick "Add a product")');
+                return false;
+            }
+            if (!formData.productCategory) {
+                toast.error('Please choose a product category');
                 return false;
             }
             return true;
@@ -198,7 +203,7 @@ function RegistrationForm() {
                 product = {
                     name: formData.productName.trim(),
                     description: formData.productDescription.trim(),
-                    category_id: formData.productCategory || null,
+                    category_id: formData.productCategory,
                     image_primary_url: imagePrimaryUrl,
                     image_secondary_url: imageSecondaryUrl,
                     search_keywords: parseTagList(formData.productKeywords)
@@ -435,11 +440,11 @@ function RegistrationForm() {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="productCategory">Category</label>
+                                    <label htmlFor="productCategory">Category *</label>
                                     <select id="productCategory" name="productCategory" value={formData.productCategory} onChange={handleChange}>
-                                        <option value="">Select a category (optional)</option>
+                                        <option value="">Select a category</option>
                                         {categories.map((category) => (
-                                            <option key={category.id} value={category.id}>{category.name}</option>
+                                            <option key={category.id} value={category.id}>{category.label}</option>
                                         ))}
                                     </select>
                                 </div>

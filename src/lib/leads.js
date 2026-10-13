@@ -28,6 +28,44 @@ export const submitLead = async (env, lead, product = null) => {
     if (error) throw error
 }
 
+// The panel's (souqroute_panel) product taxonomy — products submitted with a
+// registration are filed under one of these. anon may read active categories.
+// Returned flattened in tree order, children labelled "Parent › Child".
+export const listProductCategories = async (env) => {
+    const { data, error } = await getSupabaseClient(env)
+        .from('categories')
+        .select('id, name, parent_id, sort_order')
+        .eq('is_active', true)
+        .is('deleted_at', null)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+
+    if (error) throw error
+
+    const rows = data || []
+    const byParent = new Map()
+    rows.forEach((row) => {
+        const key = row.parent_id || 'root'
+        if (!byParent.has(key)) byParent.set(key, [])
+        byParent.get(key).push(row)
+    })
+
+    const ids = new Set(rows.map((row) => row.id))
+    const flat = []
+    const walk = (parentKey, prefix) => {
+        for (const row of byParent.get(parentKey) || []) {
+            const label = prefix ? `${prefix} › ${row.name}` : row.name
+            flat.push({ id: row.id, label })
+            walk(row.id, label)
+        }
+    }
+    walk('root', '')
+    // Children whose parent is inactive would otherwise be unreachable.
+    rows.filter((row) => row.parent_id && !ids.has(row.parent_id))
+        .forEach((row) => { flat.push({ id: row.id, label: row.name }); walk(row.id, row.name) })
+    return flat
+}
+
 export const isWebsiteAdmin = async (env) => {
     const { data, error } = await getSupabaseAdminClient(env).rpc('is_website_admin')
     if (error) throw error
@@ -37,7 +75,7 @@ export const isWebsiteAdmin = async (env) => {
 export const listLeads = async (env) => {
     const { data, error } = await getSupabaseAdminClient(env)
         .from(LEADS_TABLE)
-        .select('*, product:catalog_products(id, name, image_primary_url)')
+        .select('*, product:catalog_products(id, name, image_primary_url), panel_product:products(id, name, status)')
         .order('created_at', { ascending: false })
 
     if (error) throw error

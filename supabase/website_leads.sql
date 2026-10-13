@@ -3,8 +3,11 @@
 -- ============================================================
 -- Replaces the Firestore `leads` collection.
 --
--- Run this ONCE PER SUPABASE PROJECT, AFTER product_catalog.sql
--- (website_leads.product_id references catalog_products):
+-- Run this ONCE PER SUPABASE PROJECT (safe to re-run after edits), AFTER
+-- product_catalog.sql AND after the souqroute_panel migrations — it uses the
+-- panel's companies / products / product_images / categories tables and its
+-- is_master_user(), slugify(), notify_masters() helpers. Both projects have
+-- the panel schema applied.
 --   Test / Staging    -> gmgrsuynufoycvnqaltj
 --   Live / Production -> akwycltnkqcrwezqldbt
 --
@@ -20,7 +23,15 @@
 --   anon (public form)  -> may ONLY call submit_website_lead(). No direct
 --                          insert, no read. status/created_at are forced.
 --   authenticated admin -> read / update status / delete, but only if the
---                          user's id is in website_admins.
+--                          user's id is in website_admins (this site's
+--                          /souquerootadmin) OR is a souqroute_panel master
+--                          (platform_users, via is_master_user()).
+--
+-- ── WHERE A REGISTRATION ENDS UP ────────────────────────────
+--   - always: one website_leads row ("Website registrations" in the panel)
+--   - with a product: a PENDING panel company built from the registration
+--     (reused if the same email registered before) and a PENDING_REVIEW panel
+--     product under it, so it lands in the panel's Moderation queue.
 -- Sign-ups are OPEN on both projects (the admin's Create Account tab uses
 -- them), so "authenticated" alone is NOT enough — hence the allowlist.
 --
@@ -100,6 +111,13 @@ CREATE TABLE IF NOT EXISTS public.website_leads (
     updated_at         timestamptz NOT NULL DEFAULT now()
 );
 
+-- Links into souqroute_panel. product_id above is the LEGACY link to the
+-- marketing catalog (catalog_products) and is no longer written.
+ALTER TABLE public.website_leads
+    ADD COLUMN IF NOT EXISTS company_id       uuid REFERENCES public.companies(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS panel_product_id uuid REFERENCES public.products(id)  ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS website_leads_company_id_idx ON public.website_leads (company_id);
 CREATE INDEX IF NOT EXISTS website_leads_created_at_idx ON public.website_leads (created_at DESC);
 CREATE INDEX IF NOT EXISTS website_leads_status_idx     ON public.website_leads (status);
 CREATE INDEX IF NOT EXISTS website_leads_product_id_idx ON public.website_leads (product_id);
@@ -139,26 +157,116 @@ DROP POLICY IF EXISTS "Admins can delete website leads" ON public.website_leads;
 
 CREATE POLICY "Admins can view website leads"
     ON public.website_leads FOR SELECT TO authenticated
-    USING ( public.is_website_admin() );
+    USING ( public.is_website_admin() OR public.is_master_user() );
 
 CREATE POLICY "Admins can update website leads"
     ON public.website_leads FOR UPDATE TO authenticated
-    USING ( public.is_website_admin() )
-    WITH CHECK ( public.is_website_admin() );
+    USING ( public.is_website_admin() OR public.is_master_user() )
+    WITH CHECK ( public.is_website_admin() OR public.is_master_user() );
 
 CREATE POLICY "Admins can delete website leads"
     ON public.website_leads FOR DELETE TO authenticated
-    USING ( public.is_website_admin() );
+    USING ( public.is_website_admin() OR public.is_master_user() );
+
+
+-- ── INTERNAL: website_lead_ensure_company ────────────────────
+-- Returns the panel company for a registration, creating it if needed:
+--   1. the company already linked to this lead, else
+--   2. a company an earlier registration with the same email created, else
+--   3. a new PENDING / DRAFT company built from the registration.
+-- Links the lead to it. Not callable by clients (no grants).
+CREATE OR REPLACE FUNCTION public.website_lead_ensure_company(p_lead_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    l            public.website_leads%ROWTYPE;
+    v_company_id uuid;
+    v_country_id uuid;
+    v_city_id    uuid;
+    v_base       text;
+    v_slug       text;
+    v_n          int := 1;
+BEGIN
+    SELECT * INTO l FROM public.website_leads WHERE id = p_lead_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'WEBSITE_LEAD_NOT_FOUND' USING errcode = 'P0002';
+    END IF;
+
+    IF l.company_id IS NOT NULL
+       AND EXISTS (SELECT 1 FROM public.companies WHERE id = l.company_id AND deleted_at IS NULL) THEN
+        RETURN l.company_id;
+    END IF;
+
+    SELECT c.id INTO v_company_id
+      FROM public.companies c
+     WHERE lower(c.email) = lower(l.email)
+       AND c.metadata->>'source' = 'website_registration'
+       AND c.deleted_at IS NULL
+     ORDER BY c.created_at
+     LIMIT 1;
+
+    IF v_company_id IS NULL THEN
+        SELECT id INTO v_country_id FROM public.countries
+         WHERE lower(name) = lower(l.country) OR upper(iso2) = upper(l.country) OR upper(iso3) = upper(l.country)
+         LIMIT 1;
+        SELECT id INTO v_city_id FROM public.cities
+         WHERE lower(name) = lower(l.city) AND (v_country_id IS NULL OR country_id = v_country_id)
+         LIMIT 1;
+
+        -- companies.slug is UNIQUE and its insert trigger does not de-dupe.
+        v_base := coalesce(nullif(public.slugify(l.company), ''), 'company');
+        v_slug := v_base;
+        WHILE EXISTS (SELECT 1 FROM public.companies WHERE slug = v_slug) LOOP
+            v_n := v_n + 1;
+            v_slug := v_base || '-' || v_n;
+        END LOOP;
+
+        INSERT INTO public.companies (
+            name, slug, email, phone, mobile, website,
+            country_id, city_id, address, metadata
+        )
+        VALUES (
+            l.company, v_slug, l.email, l.phone, l.mobile_number, l.website,
+            v_country_id, v_city_id,
+            nullif(concat_ws(', ', l.office_no, l.building_name, l.street, l.locality,
+                             'P.O. Box ' || l.po_box, l.city, l.country), ''),
+            jsonb_strip_nulls(jsonb_build_object(
+                'source',             'website_registration',
+                'website_lead_id',    l.id,
+                'contact_name',       btrim(l.first_name || ' ' || l.last_name),
+                'business_activity',  l.business_activity,
+                'brands_represented', l.brands_represented
+            ))
+        )
+        RETURNING id INTO v_company_id;
+    END IF;
+
+    UPDATE public.website_leads SET company_id = v_company_id WHERE id = l.id;
+    RETURN v_company_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.website_lead_ensure_company(uuid) FROM public, anon, authenticated;
 
 
 -- ── RPC: submit_website_lead ─────────────────────────────────
--- The ONLY way the public form writes. Inserts the optional product and the
--- lead in one transaction, so a rejected lead never leaves an orphan product.
+-- The ONLY way the public form writes. Inserts the lead and, if a product was
+-- given, the panel company + PENDING_REVIEW product + images — all in one
+-- transaction, so a rejected submission leaves nothing half-created.
 -- status and created_at always come from the column defaults.
 --
 --   p_lead    jsonb  snake_case lead fields (see table above)
---   p_product jsonb  NULL, or { name, description, category_id,
---                    image_primary_url, image_secondary_url, search_keywords[] }
+--   p_product jsonb  NULL, or { name, description, category_id (panel
+--                    categories.id, required), search_keywords[],
+--                    image_primary_url, image_secondary_url }
+--
+-- Images are uploaded by the form to the public `product_images` bucket
+-- (anon can't write to the panel's company-scoped `product-images` bucket,
+-- and no company exists yet at upload time). product_images.storage_path
+-- records 'product_images/<path>' so it is obvious which bucket holds it.
 CREATE OR REPLACE FUNCTION public.submit_website_lead(
     p_lead    jsonb,
     p_product jsonb DEFAULT NULL
@@ -169,11 +277,16 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+    v_lead_id      uuid;
+    v_company_id   uuid;
     v_product_id   uuid;
     v_product_name text;
+    v_category_id  uuid;
     v_keywords     text[];
     v_image_1      text;
     v_image_2      text;
+    v_image        text;
+    v_sort         int := 0;
     -- Only accept images uploaded to this project's product_images bucket.
     c_image_marker constant text := '/storage/v1/object/public/product_images/';
 BEGIN
@@ -181,7 +294,12 @@ BEGIN
         RAISE EXCEPTION 'INVALID_LEAD: lead payload is required';
     END IF;
 
-    IF p_product IS NOT NULL AND jsonb_typeof(p_product) = 'object' THEN
+    IF p_product IS NOT NULL AND jsonb_typeof(p_product) <> 'object' THEN
+        p_product := NULL;
+    END IF;
+
+    -- Validate the product before writing anything.
+    IF p_product IS NOT NULL THEN
         v_product_name := nullif(btrim(p_product->>'name'), '');
         IF v_product_name IS NULL OR char_length(v_product_name) > 200 THEN
             RAISE EXCEPTION 'INVALID_PRODUCT: product name is required (max 200 characters)';
@@ -189,6 +307,18 @@ BEGIN
 
         IF char_length(coalesce(p_product->>'description', '')) > 2000 THEN
             RAISE EXCEPTION 'INVALID_PRODUCT: description is too long (max 2000 characters)';
+        END IF;
+
+        BEGIN
+            v_category_id := nullif(p_product->>'category_id', '')::uuid;
+        EXCEPTION WHEN invalid_text_representation THEN
+            v_category_id := NULL;
+        END;
+        IF v_category_id IS NULL OR NOT EXISTS (
+            SELECT 1 FROM public.categories
+             WHERE id = v_category_id AND is_active AND deleted_at IS NULL
+        ) THEN
+            RAISE EXCEPTION 'INVALID_PRODUCT: please choose a product category';
         END IF;
 
         v_image_1 := nullif(btrim(p_product->>'image_primary_url'), '');
@@ -208,26 +338,12 @@ BEGIN
               LIMIT 20
           ) kw
          WHERE btrim(k) <> '';
-
-        INSERT INTO public.catalog_products (
-            name, description, category_id,
-            image_primary_url, image_secondary_url, search_keywords
-        )
-        VALUES (
-            v_product_name,
-            nullif(btrim(p_product->>'description'), ''),
-            nullif(p_product->>'category_id', '')::uuid,
-            v_image_1,
-            v_image_2,
-            v_keywords
-        )
-        RETURNING id INTO v_product_id;
     END IF;
 
     INSERT INTO public.website_leads (
         first_name, last_name, company, business_activity, phone, email,
         city, country, brands_represented, mobile_number, website, office_no,
-        building_name, street, locality, po_box, message, product_id
+        building_name, street, locality, po_box, message
     )
     VALUES (
         btrim(p_lead->>'first_name'),
@@ -246,14 +362,83 @@ BEGIN
         nullif(btrim(p_lead->>'street'), ''),
         nullif(btrim(p_lead->>'locality'), ''),
         nullif(btrim(p_lead->>'po_box'), ''),
-        nullif(btrim(p_lead->>'message'), ''),
-        v_product_id
+        nullif(btrim(p_lead->>'message'), '')
+    )
+    RETURNING id INTO v_lead_id;
+
+    IF p_product IS NOT NULL THEN
+        v_company_id := public.website_lead_ensure_company(v_lead_id);
+
+        -- products_before_insert only lets masters / company members insert
+        -- and enforces product_limit. This function is the gatekeeper here,
+        -- so bypass those guards for this one insert (transaction-local).
+        PERFORM set_config('app.skip_guards', 'on', true);
+        INSERT INTO public.products (
+            company_id, category_id, name, description, status, submitted_at, metadata
+        )
+        VALUES (
+            v_company_id, v_category_id, v_product_name,
+            nullif(btrim(p_product->>'description'), ''),
+            'PENDING_REVIEW', now(),
+            jsonb_build_object(
+                'source',          'website_registration',
+                'website_lead_id', v_lead_id,
+                'search_keywords', to_jsonb(v_keywords)
+            )
+        )
+        RETURNING id INTO v_product_id;
+        PERFORM set_config('app.skip_guards', 'off', true);
+
+        FOREACH v_image IN ARRAY array_remove(ARRAY[v_image_1, v_image_2], NULL) LOOP
+            INSERT INTO public.product_images (product_id, storage_path, url, sort_order, is_primary)
+            VALUES (
+                v_product_id,
+                'product_images/' || split_part(substring(v_image FROM position(c_image_marker IN v_image) + char_length(c_image_marker)), '?', 1),
+                v_image,
+                v_sort,
+                v_sort = 0
+            );
+            v_sort := v_sort + 1;
+        END LOOP;
+
+        UPDATE public.website_leads SET panel_product_id = v_product_id WHERE id = v_lead_id;
+    END IF;
+
+    PERFORM public.notify_masters(
+        'WEBSITE_REGISTRATION',
+        'New website registration',
+        btrim(p_lead->>'company')
+            || CASE WHEN v_product_id IS NOT NULL THEN ' registered and submitted "' || v_product_name || '".'
+                    ELSE ' registered on souqroute.com.' END,
+        'website_leads',
+        v_lead_id
     );
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.submit_website_lead(jsonb, jsonb) FROM public;
 GRANT EXECUTE ON FUNCTION public.submit_website_lead(jsonb, jsonb) TO anon, authenticated;
+
+
+-- ── RPC: create_company_from_website_lead (panel masters) ────
+-- The panel's "Create company" button on a registration that came in without
+-- a product. Returns the (possibly pre-existing) company id.
+CREATE OR REPLACE FUNCTION public.create_company_from_website_lead(p_lead_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NOT public.is_master_user() THEN
+        RAISE EXCEPTION 'FORBIDDEN: only master users can create companies' USING errcode = '42501';
+    END IF;
+    RETURN public.website_lead_ensure_company(p_lead_id);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_company_from_website_lead(uuid) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.create_company_from_website_lead(uuid) TO authenticated;
 
 
 -- ── VERIFY ───────────────────────────────────────────────────

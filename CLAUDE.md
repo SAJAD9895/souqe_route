@@ -169,12 +169,32 @@ updating: form state, the mapping, the table, and the `submit_website_lead` func
   only if `is_website_admin()` — i.e. their uid is in **`website_admins`**. Sign-ups are open
   on both projects, so a session alone is never enough.
 
-### Optional product (registration step 4)
+### Optional product (registration step 4) → souqroute_panel
 
-Step 4 of the form is "Product (optional)". If the visitor ticks the opt-in, they give a name
-(required), category (from `catalog_categories`), description, keywords and up to two images.
-Images upload via `uploadProductImage` first, then the RPC creates the product and links it
-via `website_leads.product_id`. The Leads table in the admin shows it in a Product column.
+Step 4 of the form is "Product (optional)". If the visitor ticks the opt-in they give a
+name, a **category from the panel's `categories` table** (both required), description,
+keywords and up to two images. Images upload via `uploadProductImage` to this site's public
+`product_images` bucket first, then `submit_website_lead` — in one transaction — inserts the
+lead, creates (or reuses, matched by email) a **PENDING company** in the panel's `companies`
+table, and a **PENDING_REVIEW product** in the panel's `products` table with `product_images`
+rows. It shows up in the panel's Products list and Moderation queue. The lead links to them
+via `company_id` / `panel_product_id`.
+
+`website_leads.product_id` → `catalog_products` is the **legacy** link (products are no longer
+written to `catalog_products` by the form). The Products tab here still manages
+`catalog_products` separately.
+
+### In souqroute_panel
+
+Masters see registrations at `/master/website-registrations` (list + detail: status, links to
+the company/product, "Create company" for registrations without a product → the
+`create_company_from_website_lead` RPC). RLS on `website_leads` allows
+`is_website_admin() OR is_master_user()`. Each submission notifies all panel masters.
+
+The SQL therefore depends on the panel's migrations (`companies`, `products`, `categories`,
+`is_master_user()`, `slugify()`, `notify_masters()`); the panel's `docs/database.md` points back
+here. **Deploy order:** run the SQL first, then deploy this site — the new form sends panel
+category ids, which the old RPC would reject.
 
 ### Auth & the admin panel
 
