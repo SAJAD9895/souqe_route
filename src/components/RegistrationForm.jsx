@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { listProductCategories, submitLead } from '../lib/leads';
+import { findCategoryByName, listProductCategories, OTHER_CATEGORY, submitLead } from '../lib/leads';
 import { MAX_IMAGE_BYTES, parseTagList, uploadProductImage } from '../lib/products';
 import { PUBLIC_SUPABASE_ENV } from '../lib/supabaseClient';
 import './RegistrationForm.css';
@@ -25,11 +25,12 @@ const EMPTY_FORM = {
     city: '',
     country: '',
     message: '',
-    // Step 4 — the optional product. Becomes a PENDING_REVIEW product in the
-    // souqroute_panel (under a company built from this registration).
-    addProduct: false,
+    // Step 4 — the product (required). Becomes a PENDING_REVIEW product in
+    // the souqroute_panel (under a company built from this registration).
     productName: '',
     productCategory: '',
+    // Used when productCategory === OTHER_CATEGORY.
+    productCategoryOther: '',
     productDescription: '',
     productKeywords: ''
 };
@@ -85,9 +86,9 @@ function RegistrationForm() {
         setProductImages((prev) => ({ ...prev, [name]: file }));
     };
 
-    // Load the category dropdown the first time the visitor opts in.
+    // Load the category dropdown the first time the visitor reaches step 4.
     useEffect(() => {
-        if (!formData.addProduct || categoriesLoaded) return;
+        if (currentStep !== 4 || categoriesLoaded) return;
         setCategoriesLoaded(true);
         listProductCategories(PUBLIC_SUPABASE_ENV)
             .then(setCategories)
@@ -95,7 +96,14 @@ function RegistrationForm() {
                 console.error('Could not load categories:', error);
                 toast.error('Could not load product categories. Please try again later.');
             });
-    }, [formData.addProduct, categoriesLoaded]);
+    }, [currentStep, categoriesLoaded]);
+
+    // A typed "Other" category that already exists is filed under the existing
+    // one instead (the RPC does the same check server-side).
+    const isOtherCategory = formData.productCategory === OTHER_CATEGORY;
+    const matchedCategory = isOtherCategory
+        ? findCategoryByName(categories, formData.productCategoryOther)
+        : null;
 
     const validateStep = (step) => {
         if (step === 1) {
@@ -139,13 +147,18 @@ function RegistrationForm() {
             }
             return true;
         }
-        if (step === 4 && formData.addProduct) {
+        if (step === 4) {
             if (!formData.productName.trim()) {
-                toast.error('Product name is required (or untick "Add a product")');
+                toast.error('Product name is required');
                 return false;
             }
             if (!formData.productCategory) {
                 toast.error('Please choose a product category');
+                return false;
+            }
+            const otherName = formData.productCategoryOther.trim();
+            if (isOtherCategory && (otherName.length < 2 || otherName.length > 80)) {
+                toast.error('Please type your category name (2–80 characters)');
                 return false;
             }
             return true;
@@ -193,25 +206,26 @@ function RegistrationForm() {
             existingData.push(newLead);
             localStorage.setItem('souqroute_leads', JSON.stringify(existingData));
 
-            // 2. Upload the optional product's images, then build its payload.
-            let product = null;
-            if (formData.addProduct) {
-                const [imagePrimaryUrl, imageSecondaryUrl] = await Promise.all([
-                    uploadProductImage(PUBLIC_SUPABASE_ENV, productImages.primary),
-                    uploadProductImage(PUBLIC_SUPABASE_ENV, productImages.secondary)
-                ]);
-                product = {
-                    name: formData.productName.trim(),
-                    description: formData.productDescription.trim(),
-                    category_id: formData.productCategory,
-                    image_primary_url: imagePrimaryUrl,
-                    image_secondary_url: imageSecondaryUrl,
-                    search_keywords: parseTagList(formData.productKeywords)
-                };
-            }
+            // 2. Upload the product's images, then build its payload.
+            const [imagePrimaryUrl, imageSecondaryUrl] = await Promise.all([
+                uploadProductImage(PUBLIC_SUPABASE_ENV, productImages.primary),
+                uploadProductImage(PUBLIC_SUPABASE_ENV, productImages.secondary)
+            ]);
+            const product = {
+                name: formData.productName.trim(),
+                description: formData.productDescription.trim(),
+                // Either an existing category, or a new name the RPC files under
+                // a matching existing category or creates once.
+                ...(isOtherCategory && !matchedCategory
+                    ? { new_category_name: formData.productCategoryOther.trim() }
+                    : { category_id: matchedCategory ? matchedCategory.id : formData.productCategory }),
+                image_primary_url: imagePrimaryUrl,
+                image_secondary_url: imageSecondaryUrl,
+                search_keywords: parseTagList(formData.productKeywords)
+            };
 
             // 3. Send to Supabase. The submit_website_lead RPC inserts the
-            // product (if any) and the website_leads row in one transaction.
+            // lead and the product in one transaction.
             // Keys are snake_case to match supabase/website_leads.sql — keep
             // both in sync when adding a field.
             await submitLead(PUBLIC_SUPABASE_ENV, {
@@ -418,60 +432,63 @@ function RegistrationForm() {
                     </div>
                 )}
 
-                {/* Step 4: Optional Product */}
+                {/* Step 4: Product (required) */}
                 {currentStep === 4 && (
                     <div className="form-step fade-in">
-                        <h4 className="form-section-title">Product (Optional)</h4>
+                        <h4 className="form-section-title">Your Product</h4>
+                        <p className="product-opt-in-hint">Tell us about a product you supply. Our team reviews it before it is listed.</p>
 
-                        <label className="product-opt-in" htmlFor="addProduct">
-                            <input type="checkbox" id="addProduct" name="addProduct" checked={formData.addProduct} onChange={handleChange} />
-                            <span>I&apos;d like to list a product I supply</span>
-                        </label>
+                        <div className="form-group">
+                            <label htmlFor="productName">Product Name *</label>
+                            <input type="text" id="productName" name="productName" value={formData.productName} onChange={handleChange} maxLength={200} placeholder="e.g. 3-Core Copper Cable 4mm" />
+                        </div>
 
-                        {!formData.addProduct && (
-                            <p className="product-opt-in-hint">You can skip this step and complete your registration.</p>
+                        <div className="form-group">
+                            <label htmlFor="productCategory">Category *</label>
+                            <select id="productCategory" name="productCategory" value={formData.productCategory} onChange={handleChange}>
+                                <option value="">Select a category</option>
+                                {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>{category.label}</option>
+                                ))}
+                                <option value={OTHER_CATEGORY}>Other (not listed)…</option>
+                            </select>
+                        </div>
+
+                        {isOtherCategory && (
+                            <div className="form-group">
+                                <label htmlFor="productCategoryOther">Your Category *</label>
+                                <input type="text" id="productCategoryOther" name="productCategoryOther" value={formData.productCategoryOther} onChange={handleChange} maxLength={80} placeholder="e.g. Fire Fighting Equipment" autoFocus />
+                                {matchedCategory ? (
+                                    <p className="product-opt-in-hint category-match">
+                                        &ldquo;{matchedCategory.label}&rdquo; already exists — your product will be listed under it.
+                                    </p>
+                                ) : formData.productCategoryOther.trim().length >= 2 && (
+                                    <p className="product-opt-in-hint">This will be added as a new category.</p>
+                                )}
+                            </div>
                         )}
 
-                        {formData.addProduct && (
-                            <>
-                                <div className="form-group">
-                                    <label htmlFor="productName">Product Name *</label>
-                                    <input type="text" id="productName" name="productName" value={formData.productName} onChange={handleChange} maxLength={200} placeholder="e.g. 3-Core Copper Cable 4mm" />
-                                </div>
+                        <div className="form-group">
+                            <label htmlFor="productDescription">Description</label>
+                            <textarea id="productDescription" name="productDescription" rows="2" value={formData.productDescription} onChange={handleChange} maxLength={2000} placeholder="Specs, sizes, certifications..."></textarea>
+                        </div>
 
-                                <div className="form-group">
-                                    <label htmlFor="productCategory">Category *</label>
-                                    <select id="productCategory" name="productCategory" value={formData.productCategory} onChange={handleChange}>
-                                        <option value="">Select a category</option>
-                                        {categories.map((category) => (
-                                            <option key={category.id} value={category.id}>{category.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                        <div className="form-group">
+                            <label htmlFor="productKeywords">Keywords</label>
+                            <input type="text" id="productKeywords" name="productKeywords" value={formData.productKeywords} onChange={handleChange} maxLength={500} placeholder="cable, copper, 3-core (comma separated)" />
+                        </div>
 
-                                <div className="form-group">
-                                    <label htmlFor="productDescription">Description</label>
-                                    <textarea id="productDescription" name="productDescription" rows="2" value={formData.productDescription} onChange={handleChange} maxLength={2000} placeholder="Specs, sizes, certifications..."></textarea>
-                                </div>
-
-                                <div className="form-group">
-                                    <label htmlFor="productKeywords">Keywords</label>
-                                    <input type="text" id="productKeywords" name="productKeywords" value={formData.productKeywords} onChange={handleChange} maxLength={500} placeholder="cable, copper, 3-core (comma separated)" />
-                                </div>
-
-                                <div className="form-row-compact">
-                                    <div className="form-group">
-                                        <label htmlFor="productImagePrimary">Main Image</label>
-                                        <input key={`primary-${fileInputKey}`} type="file" id="productImagePrimary" name="primary" accept="image/*" onChange={handleImageChange} />
-                                    </div>
-                                    <div className="form-group">
-                                        <label htmlFor="productImageSecondary">Second Image</label>
-                                        <input key={`secondary-${fileInputKey}`} type="file" id="productImageSecondary" name="secondary" accept="image/*" onChange={handleImageChange} />
-                                    </div>
-                                </div>
-                                <p className="product-opt-in-hint">Images up to 5MB each.</p>
-                            </>
-                        )}
+                        <div className="form-row-compact">
+                            <div className="form-group">
+                                <label htmlFor="productImagePrimary">Main Image</label>
+                                <input key={`primary-${fileInputKey}`} type="file" id="productImagePrimary" name="primary" accept="image/*" onChange={handleImageChange} />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="productImageSecondary">Second Image</label>
+                                <input key={`secondary-${fileInputKey}`} type="file" id="productImageSecondary" name="secondary" accept="image/*" onChange={handleImageChange} />
+                            </div>
+                        </div>
+                        <p className="product-opt-in-hint">Images up to 5MB each.</p>
                     </div>
                 )}
 

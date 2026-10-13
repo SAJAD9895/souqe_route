@@ -28,13 +28,29 @@ export const submitLead = async (env, lead, product = null) => {
     if (error) throw error
 }
 
+// Sentinel <select> value for "my category isn't listed".
+export const OTHER_CATEGORY = '__other__'
+
+// Same rule as public.slugify() in the panel's SQL, so the client-side
+// duplicate hint agrees with the server-side check in submit_website_lead.
+export const slugifyCategory = (value) =>
+    (value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+// The existing category a typed name refers to, if any ("hvac", "H.V.A.C"
+// is not a match, but "Hvac " and "hvac" are).
+export const findCategoryByName = (categories, name) => {
+    const slug = slugifyCategory(name)
+    if (!slug) return null
+    return categories.find((category) => category.slug === slug || slugifyCategory(category.name) === slug) || null
+}
+
 // The panel's (souqroute_panel) product taxonomy — products submitted with a
 // registration are filed under one of these. anon may read active categories.
 // Returned flattened in tree order, children labelled "Parent › Child".
 export const listProductCategories = async (env) => {
     const { data, error } = await getSupabaseClient(env)
         .from('categories')
-        .select('id, name, parent_id, sort_order')
+        .select('id, name, slug, parent_id, sort_order')
         .eq('is_active', true)
         .is('deleted_at', null)
         .order('sort_order', { ascending: true })
@@ -55,14 +71,14 @@ export const listProductCategories = async (env) => {
     const walk = (parentKey, prefix) => {
         for (const row of byParent.get(parentKey) || []) {
             const label = prefix ? `${prefix} › ${row.name}` : row.name
-            flat.push({ id: row.id, label })
+            flat.push({ id: row.id, name: row.name, slug: row.slug, label })
             walk(row.id, label)
         }
     }
     walk('root', '')
     // Children whose parent is inactive would otherwise be unreachable.
     rows.filter((row) => row.parent_id && !ids.has(row.parent_id))
-        .forEach((row) => { flat.push({ id: row.id, label: row.name }); walk(row.id, row.name) })
+        .forEach((row) => { flat.push({ id: row.id, name: row.name, slug: row.slug, label: row.name }); walk(row.id, row.name) })
     return flat
 }
 

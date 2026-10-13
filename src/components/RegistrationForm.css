@@ -168,23 +168,7 @@
         /* Hide labels on very small screens if needed */
     }
 }
-/* Step 4 — optional product */
-.product-opt-in {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 600;
-    color: var(--color-black);
-    cursor: pointer;
-    margin-bottom: 10px;
-}
-
-.product-opt-in input {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--color-red);
-}
-
+/* Step 4 — product */
 .registration-form-container .product-opt-in-hint {
     font-size: 0.85rem;
     text-align: left;
@@ -195,4 +179,11 @@
 .registration-form .form-group input[type="file"] {
     padding: 6px;
     font-size: 0.85rem;
+}
+
+/* "That category already exists" — reassuring, not an error */
+.registration-form-container .product-opt-in-hint.category-match {
+    color: var(--color-black);
+    font-weight: 600;
+    opacity: 1;
 }

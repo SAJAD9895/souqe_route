@@ -28,10 +28,13 @@
 --                          (platform_users, via is_master_user()).
 --
 -- ── WHERE A REGISTRATION ENDS UP ────────────────────────────
---   - always: one website_leads row ("Website registrations" in the panel)
---   - with a product: a PENDING panel company built from the registration
---     (reused if the same email registered before) and a PENDING_REVIEW panel
---     product under it, so it lands in the panel's Moderation queue.
+-- A product is REQUIRED with every new registration. One submission writes:
+--   - one website_leads row ("Website registrations" in the panel)
+--   - a PENDING panel company built from the registration (reused if the same
+--     email registered before)
+--   - a PENDING_REVIEW panel product under it (the panel's Moderation queue)
+--   - if the visitor typed a category that isn't listed: that category, unless
+--     one with the same normalised name already exists (then it is reused).
 -- Sign-ups are OPEN on both projects (the admin's Create Account tab uses
 -- them), so "authenticated" alone is NOT enough — hence the allowlist.
 --
@@ -252,6 +255,69 @@ $$;
 REVOKE ALL ON FUNCTION public.website_lead_ensure_company(uuid) FROM public, anon, authenticated;
 
 
+-- ── INTERNAL: website_find_or_create_category ────────────────
+-- Resolves a category name typed on the form ("Other (not listed)").
+-- Duplicates are detected on the normalised name — public.slugify(), i.e.
+-- lowercase with every run of non-alphanumerics collapsed to '-' — matched
+-- against both the slug and the slugified name of every non-deleted category,
+-- active or not, at any level. So "Fire  Fighting", "fire-fighting" and
+-- "FIRE FIGHTING!" all resolve to one row. A new category is created at the
+-- top level, active (so the next visitor can pick it), and tagged in its
+-- description so masters can find and re-file it.
+-- Not callable by clients (no grants).
+CREATE OR REPLACE FUNCTION public.website_find_or_create_category(p_name text)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_name text := regexp_replace(btrim(coalesce(p_name, '')), '\s+', ' ', 'g');
+    v_key  text := public.slugify(p_name);
+    v_id   uuid;
+    v_slug text;
+    v_n    int := 1;
+BEGIN
+    IF char_length(v_name) NOT BETWEEN 2 AND 80 OR v_key = '' THEN
+        RAISE EXCEPTION 'INVALID_PRODUCT: category name must be 2–80 characters';
+    END IF;
+
+    FOR attempt IN 1..3 LOOP
+        SELECT id INTO v_id
+          FROM public.categories
+         WHERE deleted_at IS NULL
+           AND (slug = v_key OR public.slugify(name) = v_key)
+         ORDER BY is_active DESC, level, created_at
+         LIMIT 1;
+        IF v_id IS NOT NULL THEN
+            RETURN v_id;
+        END IF;
+
+        -- slug is globally unique; a soft-deleted category may still hold it.
+        v_slug := v_key;
+        WHILE EXISTS (SELECT 1 FROM public.categories WHERE slug = v_slug) LOOP
+            v_n := v_n + 1;
+            v_slug := v_key || '-' || v_n;
+        END LOOP;
+
+        BEGIN
+            INSERT INTO public.categories (name, slug, description, is_active)
+            VALUES (v_name, v_slug, 'Added from a souqroute.com registration.', true)
+            RETURNING id INTO v_id;
+            RETURN v_id;
+        EXCEPTION WHEN unique_violation THEN
+            -- Someone created it concurrently: loop and pick theirs up.
+            v_id := NULL;
+        END;
+    END LOOP;
+
+    RAISE EXCEPTION 'INVALID_PRODUCT: could not save the category, please try again';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.website_find_or_create_category(text) FROM public, anon, authenticated;
+
+
 -- ── RPC: submit_website_lead ─────────────────────────────────
 -- The ONLY way the public form writes. Inserts the lead and, if a product was
 -- given, the panel company + PENDING_REVIEW product + images — all in one
@@ -259,9 +325,9 @@ REVOKE ALL ON FUNCTION public.website_lead_ensure_company(uuid) FROM public, ano
 -- status and created_at always come from the column defaults.
 --
 --   p_lead    jsonb  snake_case lead fields (see table above)
---   p_product jsonb  NULL, or { name, description, category_id (panel
---                    categories.id, required), search_keywords[],
---                    image_primary_url, image_secondary_url }
+--   p_product jsonb  REQUIRED: { name, description, search_keywords[],
+--                    image_primary_url, image_secondary_url, and EITHER
+--                    category_id (panel categories.id) OR new_category_name }
 --
 -- Images are uploaded by the form to the public `product_images` bucket
 -- (anon can't write to the panel's company-scoped `product-images` bucket,
@@ -294,8 +360,8 @@ BEGIN
         RAISE EXCEPTION 'INVALID_LEAD: lead payload is required';
     END IF;
 
-    IF p_product IS NOT NULL AND jsonb_typeof(p_product) <> 'object' THEN
-        p_product := NULL;
+    IF p_product IS NULL OR jsonb_typeof(p_product) <> 'object' THEN
+        RAISE EXCEPTION 'INVALID_PRODUCT: product details are required';
     END IF;
 
     -- Validate the product before writing anything.
@@ -309,16 +375,21 @@ BEGIN
             RAISE EXCEPTION 'INVALID_PRODUCT: description is too long (max 2000 characters)';
         END IF;
 
-        BEGIN
-            v_category_id := nullif(p_product->>'category_id', '')::uuid;
-        EXCEPTION WHEN invalid_text_representation THEN
+        IF nullif(btrim(p_product->>'new_category_name'), '') IS NOT NULL THEN
+            -- Resolved (found or created) after validation, below.
             v_category_id := NULL;
-        END;
-        IF v_category_id IS NULL OR NOT EXISTS (
-            SELECT 1 FROM public.categories
-             WHERE id = v_category_id AND is_active AND deleted_at IS NULL
-        ) THEN
-            RAISE EXCEPTION 'INVALID_PRODUCT: please choose a product category';
+        ELSE
+            BEGIN
+                v_category_id := nullif(p_product->>'category_id', '')::uuid;
+            EXCEPTION WHEN invalid_text_representation THEN
+                v_category_id := NULL;
+            END;
+            IF v_category_id IS NULL OR NOT EXISTS (
+                SELECT 1 FROM public.categories
+                 WHERE id = v_category_id AND is_active AND deleted_at IS NULL
+            ) THEN
+                RAISE EXCEPTION 'INVALID_PRODUCT: please choose a product category';
+            END IF;
         END IF;
 
         v_image_1 := nullif(btrim(p_product->>'image_primary_url'), '');
@@ -367,6 +438,10 @@ BEGIN
     RETURNING id INTO v_lead_id;
 
     IF p_product IS NOT NULL THEN
+        IF v_category_id IS NULL THEN
+            v_category_id := public.website_find_or_create_category(p_product->>'new_category_name');
+        END IF;
+
         v_company_id := public.website_lead_ensure_company(v_lead_id);
 
         -- products_before_insert only lets masters / company members insert

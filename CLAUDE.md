@@ -169,16 +169,28 @@ updating: form state, the mapping, the table, and the `submit_website_lead` func
   only if `is_website_admin()` — i.e. their uid is in **`website_admins`**. Sign-ups are open
   on both projects, so a session alone is never enough.
 
-### Optional product (registration step 4) → souqroute_panel
+### Product (registration step 4, required) → souqroute_panel
 
-Step 4 of the form is "Product (optional)". If the visitor ticks the opt-in they give a
-name, a **category from the panel's `categories` table** (both required), description,
-keywords and up to two images. Images upload via `uploadProductImage` to this site's public
-`product_images` bucket first, then `submit_website_lead` — in one transaction — inserts the
-lead, creates (or reuses, matched by email) a **PENDING company** in the panel's `companies`
-table, and a **PENDING_REVIEW product** in the panel's `products` table with `product_images`
-rows. It shows up in the panel's Products list and Moderation queue. The lead links to them
-via `company_id` / `panel_product_id`.
+Every registration must include one product: a name, a **category** (both required),
+description, keywords and up to two images. The RPC rejects a submission with no product.
+
+The category dropdown lists the panel's active `categories` plus **"Other (not listed)…"**,
+which reveals a text field. The typed name is matched against existing categories on its
+**normalised form** (`public.slugify`: lowercase, runs of non-alphanumerics → `-`), against
+both `slug` and `slugify(name)`, across every non-deleted category, active or not. A match is
+reused, so "fire fighting", "Fire-Fighting" and "FIRE  FIGHTING!" never create three rows. The
+form shows the same check live ("already exists — your product will be listed under it") via
+`findCategoryByName` in `src/lib/leads.js`, which must stay in step with `public.slugify`.
+Only an unmatched name creates a category (`website_find_or_create_category`): top-level,
+active, description "Added from a souqroute.com registration." so masters can find and
+re-file it. A concurrent insert of the same name is caught and reused.
+
+Images upload via `uploadProductImage` to this site's public `product_images` bucket first,
+then `submit_website_lead` — in one transaction — inserts the lead, resolves the category,
+creates (or reuses, matched by email) a **PENDING company** in the panel's `companies` table,
+and a **PENDING_REVIEW product** in the panel's `products` table with `product_images` rows.
+It shows up in the panel's Products list and Moderation queue. The lead links to them via
+`company_id` / `panel_product_id`.
 
 `website_leads.product_id` → `catalog_products` is the **legacy** link (products are no longer
 written to `catalog_products` by the form). The Products tab here still manages
