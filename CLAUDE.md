@@ -201,6 +201,11 @@ firebase-admin` — every non-`legacy-*` Firestore doc (`'firestore:<docId>'`). 
 `legacy_ref`, so it is safe to re-run; `--dry-run` prints counts; `--env` defaults to live.
 Needs `SUPABASE_SERVICE_ROLE_KEY` on the command line — never in `.env`, never `VITE_`.
 
+**Done on live, 2026-10-13: 43 rows** — 34 backup leads plus 9 Firestore submissions
+(2026-09-05 → 2026-10-10). Backup ids 44–47 were left out with `--exclude 44,45,46,47`: they
+were "ABC"/example.com test entries already deleted from Firestore. Id 9 (Delta Raqiya) had also
+been deleted from Firestore but was deliberately restored. The test project was not loaded.
+
 ### Legacy Firebase
 
 Firestore project `souqroute` still holds the old `leads` collection. Nothing in `src/` reads

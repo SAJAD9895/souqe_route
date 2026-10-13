@@ -478,12 +478,17 @@ function RegistrationForm() {
                         </button>
                     )}
 
+                    {/* Distinct keys are load-bearing: without them React reuses one
+                        <button> for both, flips it to type="submit" mid-click when
+                        Continue reaches the last step, and the browser then submits
+                        the form from that same click. */}
                     {currentStep < TOTAL_STEPS ? (
-                        <button type="button" className="btn btn-primary" onClick={nextStep} style={{ flex: 1 }}>
+                        <button key="continue" type="button" className="btn btn-primary" onClick={nextStep} style={{ flex: 1 }}>
                             Continue
                         </button>
                     ) : (
                         <button
+                            key="submit"
                             type="submit"
                             className={`btn btn-primary ${submitStatus}`}
                             style={{ flex: 1 }}

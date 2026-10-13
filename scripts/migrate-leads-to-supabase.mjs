@@ -17,7 +17,9 @@
 // Usage:
 //   SUPABASE_SERVICE_ROLE_KEY=... node --env-file=.env scripts/migrate-leads-to-supabase.mjs \
 //       [--env live|test] [--dry-run] [--firestore path/to/service-account.json]
+//       [--exclude 44,45,46,47]
 //
+// --exclude skips backup ids (e.g. test entries already deleted in Firestore).
 // --env defaults to live. --firestore needs firebase-admin, which is not a
 // project dependency: `npm i --no-save firebase-admin` before running.
 
@@ -34,6 +36,7 @@ const option = (name) => {
 const envId = option('env') || 'live'
 const dryRun = flag('dry-run')
 const serviceAccountPath = option('firestore')
+const excludedIds = (option('exclude') || '').split(',').map((id) => id.trim()).filter(Boolean)
 
 const SUPABASE_URLS = {
     test: process.env.VITE_SUPABASE_STAGING_URL,
@@ -85,7 +88,9 @@ const toRow = (raw, legacyRef, createdAt) => {
 const loadBackup = async () => {
     const raw = JSON.parse(await readFile(new URL('../leads-backup.json', import.meta.url), 'utf8'))
     // Postgres text format ("2026-01-26 11:43:10.911783+00") -> ISO.
-    return raw.map((lead) => toRow(
+    const excluded = raw.filter((lead) => excludedIds.includes(String(lead.id)))
+    if (excluded.length) console.log(`Excluding backup ids: ${excluded.map((lead) => lead.id).join(', ')}`)
+    return raw.filter((lead) => !excludedIds.includes(String(lead.id))).map((lead) => toRow(
         lead,
         `supabase-v1:${lead.id}`,
         String(lead.created_at).replace(' ', 'T').replace(/\+00$/, 'Z')
